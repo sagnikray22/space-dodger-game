@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Space Dodger</title>
+    <title>Void Runner</title> <!-- MODIFIED: New Name -->
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
@@ -48,13 +48,19 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+        /* MODIFIED: Toned down the glow for readability */
         .text-glow-cyan {
             color: #e0faff;
-            text-shadow: 0 0 2px #0ff, 0 0 6px #0ff, 0 0 12px #0ff;
+            text-shadow: 0 0 1px #0ff, 0 0 3px #0ff, 0 0 8px #0ff; /* Reduced blur */
         }
         .text-glow-yellow {
             color: #fffde0;
             text-shadow: 0 0 2px #ff0, 0 0 6px #ff0, 0 0 12px #ff0;
+        }
+        /* NEW: Clean subtitle font */
+        .text-subtitle {
+            font-family: Arial, sans-serif; /* Use a clean font */
+            color: #cbd5e1; /* slate-300 */
         }
 
         /* Leaderboard Styles (for inside the modal) */
@@ -92,7 +98,7 @@
 <body class="text-white flex flex-col items-center h-screen pt-4 pb-8">
 
     <!-- Game Title -->
-    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Space Dodger</h1>
+    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Void Runner</h1> <!-- MODIFIED: New Name -->
 
     <!-- Score Display -->
     <div class="mb-2 text-lg md:text-2xl">
@@ -146,7 +152,8 @@
             <!-- MODIFIED: Replaced octopus img with a video player for the end screen -->
             <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none"></video>
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
-            <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
+            <!-- MODIFIED: Removed glow from subtitle -->
+            <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
             
             <!-- Submit Score Form -->
             <div id="submitScoreForm" class="hidden">
@@ -299,13 +306,15 @@
                     if (user) {
                         console.log("User is signed in:", user.uid);
                         userId = user.uid;
-                        isAuthReady = true; // NEW: Auth is ready
-                        loadLeaderboard(); // Load leaderboard on auth
-                        
-                        // NEW: Enable the start button
-                        if (restartButton.textContent === 'Loading...') {
-                            restartButton.textContent = 'Start Game';
-                            restartButton.disabled = false;
+                        if (!isAuthReady) { // Only run this once
+                            isAuthReady = true; // NEW: Auth is ready
+                            loadLeaderboard(); // Load leaderboard on auth
+                            
+                            // NEW: Enable the start button
+                            if (restartButton.textContent === 'Loading...') {
+                                restartButton.textContent = 'Start Game';
+                                restartButton.disabled = false;
+                            }
                         }
                     } else {
                         console.log("User is signed out.");
@@ -974,8 +983,8 @@
         // --- MODIFIED: Initial Game Start ---
         function main() {
             try {
-                modalTitle.textContent = 'Space Dodger';
-                modalScore.textContent = 'Dodge the meteors!';
+                modalTitle.textContent = 'Void Runner'; // MODIFIED: New Name
+                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`; // MODIFIED: Use new font class
                 
                 // --- MODIFICATION: Check if auth is ready ---
                 if (isAuthReady) {
@@ -986,6 +995,20 @@
                     restartButton.disabled = true;
                 }
                 // --- END MODIFICATION ---
+                
+                // --- NEW: Add a failsafe timer ---
+                // If auth takes more than 5s, start the game anyway.
+                setTimeout(() => {
+                    if (!isAuthReady) {
+                        console.warn("Auth timeout. Forcing game start.");
+                        isAuthReady = true; // Force-enable
+                        if (restartButton.textContent === 'Loading...') {
+                            restartButton.textContent = 'Start Game';
+                            restartButton.disabled = false;
+                        }
+                    }
+                }, 5000); // 5 seconds
+                // --- END NEW ---
                 
                 submitScoreForm.classList.add('hidden');
                 leaderboardModalContainer.classList.add('hidden'); // Hide leaderboard
@@ -1075,6 +1098,7 @@
     </script>
 </body>
 </html>
+
 
 
 
