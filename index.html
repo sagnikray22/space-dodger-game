@@ -6,11 +6,12 @@
     <title>Space Dodger</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- NEW: Use Orbitron font -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            /* MODIFIED: Set new font */
+            font-family: 'Orbitron', sans-serif;
             overflow: hidden; /* Prevent scrolling on mobile */
             touch-action: none; /* Disable panning and zooming */
         }
@@ -37,6 +38,8 @@
             justify-content: center;
             align-items: center;
             z-index: 50;
+            /* NEW: Backdrop blur for AAA feel */
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -44,11 +47,12 @@
 <body class="bg-purple-900 text-white flex flex-col items-center min-h-screen pt-4">
 
     <!-- Game Title -->
-    <h1 class="text-3xl md:text-4xl font-bold text-cyan-300 mb-4">Space Dodger</h1>
+    <!-- MODIFIED: Added drop-shadow for glow effect -->
+    <h1 class="text-3xl md:text-4xl font-bold text-cyan-300 mb-4 [text-shadow:0_0_8px_#0ff,0_0_4px_#0ff]">Space Dodger</h1>
 
     <!-- Score Display -->
     <div class="mb-4 text-lg md:text-2xl">
-        Score: <span id="score" class="font-bold text-yellow-300">0</span>
+        Score: <span id="score" class="font-bold text-yellow-300 [text-shadow:0_0_8px_#ff0,0_0_4px_#ff0]">0</span>
     </div>
 
     <!-- Game Canvas -->
@@ -58,25 +62,27 @@
     </div>
 
     <!-- Mobile Touch Controls -->
-    <!-- MODIFIED: Changed to purple theme -->
+    <!-- MODIFIED: Styled buttons -->
     <div class="md:hidden w-full max-w-lg mt-4 grid grid-cols-2 gap-4 px-4 pb-4">
-        <button id="moveLeftBtn" class="bg-purple-600 active:bg-purple-700 text-white font-bold py-4 rounded-lg shadow-lg text-xl">
+        <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
         </button>
-        <button id="moveRightBtn" class="bg-purple-600 active:bg-purple-700 text-white font-bold py-4 rounded-lg shadow-lg text-xl">
+        <button id="moveRightBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             Right &rarr;
         </button>
     </div>
 
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
-        <div id="gameModal" class="bg-gray-800 p-8 rounded-lg shadow-xl text-center border-2 border-cyan-300">
+        <!-- MODIFIED: Styled modal -->
+        <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
             <!-- NEW: Image for Game Over screen -->
             <img id="modalImage" src="" alt="Game Over" class="w-32 h-32 mx-auto mb-4 rounded-lg hidden">
             <!-- END NEW -->
-            <h2 id="modalTitle" class="text-3xl font-bold mb-4">Game Over!</h2>
+            <h2 id="modalTitle" class="text-3xl font-bold mb-4 [text-shadow:0_0_8px_#0ff,0_0_4px_#0ff]">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
-            <button id="restartButton" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transition duration-200">
+            <!-- MODIFIED: Styled button -->
+            <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
         </div>
@@ -546,7 +552,8 @@
             
             // Show game over modal
             modalTitle.textContent = 'Game Over!';
-            modalScore.textContent = `Your Score: ${score}`;
+            // MODIFIED: Use innerHTML to allow for glow class
+            modalScore.innerHTML = `Your Score: <span class="text-yellow-300 [text-shadow:0_0_8px_#ff0,0_0_4px_#ff0]">${score}</span>`;
             
             // --- NEW: Show octopus image ---
             if (octopusImageLoaded) {
@@ -685,7 +692,7 @@
         // --- Initial Game Start ---
         // Show "Start Game" modal on first load
         modalTitle.textContent = 'Space Dodger';
-        modalScore.textContent = 'Dodge the meteors!';
+        modalScore.innerHTML = 'Dodge the meteors!'; // MODIFIED: Use innerHTML
         restartButton.textContent = 'Start Game';
         modalBackdrop.classList.remove('hidden'); // MODIFIED: Fixed typo (was modalBackMoving)
         modalImage.classList.add('hidden'); // --- NEW: Hide image for Start modal ---
@@ -695,6 +702,4 @@
     </script>
 </body>
 </html>
-
-
 
