@@ -630,154 +630,10 @@
 
         // MODIFIED: Start/restart game
         function initGame() {
-            // MODIFIED: Use gameContainer
-            const cssWidth = gameContainer.clientWidth;
-            const cssHeight = gameContainer.clientHeight;
-            initStars(cssWidth, cssHeight);
-            player = createPlayer();
-            obstacles = [];
-            particles = []; // Clear confetti
-            score = 0;
-            lives = 3;
-            gameSpeed = 1.0;
-            isGameOver = false;
-            obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 80; // MODIFIED: Start with a faster spawn rate (was 100)
-            shieldTimer = 0;
-            scoreEl.textContent = '0';
-            modalBackdrop.classList.add('hidden');
-            
-            // MODIFIED: Hide end screen video
-            endScreenVideo.classList.add('hidden');
-            endScreenVideo.src = ''; // Stop it from playing
-            if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear timer
-        
-            // MODIFIED: Remove leaderboard/submit logic
-            // playerNameInput.disabled = false;
-            // playerNameInput.value = '';
-            // submitScoreBtn.disabled = false;
-            // submitScoreBtn.textContent = 'Submit Score';
-            // submitScoreBtn.classList.add('bg-green-500');
-            // submitScoreBtn.classList.remove('bg-gray-500');
-            // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
-            // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
-            
-            // NEW: Hide cat video on Restart
-            catMemePlayer.classList.add('hidden'); // MODIFIED
-            catMemePlayer.src = ''; // MODIFIED
-            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+            // --- NEW: Force resize canvas to get correct dimensions ---
+            resizeCanvas(); 
+            // --- END NEW ---
 
-            // NEW: Hide shield video on Restart
-            shieldVideoPlayer.classList.add('hidden');
-            shieldVideoPlayer.src = '';
-            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
-            
-            playSound('music');
-            gameLoop();
-        }
-        
-        // --- Particle Functions (unchanged) ---
-        function emitParticles(x, y, count, color) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
-                    size: Math.random() * 3 + 1, color: color,
-                    life: Math.random() * 60 + 30
-                });
-            }
-        }
-        function emitThrusterParticles() {
-            if (!player) return;
-            for (let i = 0; i < 2; i++) {
-                particles.push({
-                    x: player.x + player.width / 2 + (Math.random() - 0.5) * (player.width * 0.5),
-                    y: player.y + player.height,
-                    vx: (Math.random() - 0.5) * 0.5, vy: Math.random() * 2 + 1.5,
-                    size: Math.random() * 2 + 1, color: '#FF4500',
-                    life: Math.random() * 30 + 20
-                });
-            }
-        }
-
-        // --- NEW: Confetti Particle Emitter ---
-        function emitConfetti(width, height) {
-            const confettiColors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#277da1', '#ffffff'];
-            for (let i = 0; i < 200; i++) { // 200 particles
-                particles.push({
-                    type: 'confetti',
-                    x: width / 2, // Start at center
-                    y: height / 2,
-                    vx: (Math.random() - 0.5) * 15, // Explode horizontally
-                    vy: (Math.random() - 0.5) * 20 - 5, // Explode upwards
-                    size: Math.random() * 5 + 3,
-                    color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-                    life: 200 + Math.random() * 100 // Long life
-                });
-            }
-        }
-
-        // --- MODIFIED: Particle Physics ---
-        function updateAndDrawParticles() {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; 
-                p.y += p.vy; 
-                p.life--;
-
-                // NEW: Add gravity and drag to confetti
-                if (p.type === 'confetti') {
-                    p.vy += 0.1; // Gravity
-                    p.vx *= 0.99; // Air drag
-                }
-
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                } else {
-                    ctx.save();
-                    // Fade out regular particles, but not confetti (it fades by falling off screen)
-                    if (p.type !== 'confetti') {
-                        ctx.globalAlpha = p.life / 60;
-                    } else {
-                        ctx.globalAlpha = p.life / (200 + Math.random() * 100);
-                    }
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(p.x, p.y, p.size, p.size);
-                    ctx.restore();
-                }
-            }
-        }
-
-        // --- MODIFIED: Starfield Functions (for non-square) ---
-        function createStar(width, height) {
-            return {
-                x: Math.random() * width, y: Math.random() * height,
-                size: Math.random() * 2 + 1, speed: Math.random() * 0.5 + 0.2
-            };
-        }
-        function initStars(width, height) {
-            stars = [];
-            for (let i = 0; i < 100; i++) {
-                stars.push(createStar(width, height));
-            }
-        }
-        function updateAndDrawStars(width, height) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            for (let star of stars) {
-                star.y += star.speed;
-                if (star.y > height) {
-                    star.y = 0;
-                    star.x = Math.random() * width;
-                }
-                ctx.fillRect(star.x, star.y, star.size, star.size);
-            }
-            ctx.restore();
-        }
-
-        // --- *** MAJOR BUG FIX *** ---
-        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
-        function gameLoop() {
             // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
@@ -977,4 +833,5 @@
     </script>
 </body>
 </html>
+
 
