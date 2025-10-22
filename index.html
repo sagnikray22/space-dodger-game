@@ -111,6 +111,16 @@
         preload="none"
     ></video>
 
+    <!-- NEW: Hidden <video> for Shield Power-up -->
+    <video id="shieldVideoPlayer"
+        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400"
+        width="320" 
+        height="180" 
+        src=""
+        controls 
+        preload="none"
+    ></video>
+
     <!-- Game Canvas Container -->
     <!-- MODIFIED: This container will define the game size -->
     <div id="game-container" class="w-full flex-1 rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
@@ -175,6 +185,8 @@
         let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
         let moveLeftBtn, moveRightBtn, gameContainer;
         let leaderboardModalContainer, catMemePlayer; // MODIFIED
+        let shieldVideoPlayer; // NEW: For cat5.mp4
+ 
 
         // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
@@ -185,7 +197,9 @@
         let moveLeft = false, moveRight = false;
         let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
         let endScreenVideoTimeout; // NEW: Timer for end screen video
-
+        let shieldVideoTimeout; // NEW: Timer for shield video
+        let isAuthReady = false; // NEW: Auth state tracking
+ 
         // --- NEW: Add your Cat Meme filenames here! ---
         // 1. Upload your .mp4 files to GitHub
         // 2. Add the exact filenames to this list
@@ -285,7 +299,14 @@
                     if (user) {
                         console.log("User is signed in:", user.uid);
                         userId = user.uid;
+                        isAuthReady = true; // NEW: Auth is ready
                         loadLeaderboard(); // Load leaderboard on auth
+                        
+                        // NEW: Enable the start button
+                        if (restartButton.textContent === 'Loading...') {
+                            restartButton.textContent = 'Start Game';
+                            restartButton.disabled = false;
+                        }
                     } else {
                         console.log("User is signed out.");
                         userId = null;
@@ -330,6 +351,34 @@
 
             } catch(e) {
                 console.error("Could not play cat meme:", e);
+            }
+        }
+
+        // --- NEW: Function to play cat5.mp4 on shield pickup ---
+        function playShieldVideo() {
+            try {
+                // Clear any previous timeout
+                if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
+
+                // Set the video source
+                shieldVideoPlayer.src = 'cat5.mp4';
+                
+                // Show the player (on the right side)
+                shieldVideoPlayer.classList.remove('hidden');
+
+                // Try to play it
+                shieldVideoPlayer.play().catch(e => {
+                    console.warn("Shield video autoplay blocked. User must click play.", e.message);
+                });
+
+                // Set a timer to hide the player after 5 seconds
+                shieldVideoTimeout = setTimeout(() => {
+                    shieldVideoPlayer.classList.add('hidden');
+                    shieldVideoPlayer.src = ''; // Clear src
+                }, 5000); // 5 seconds
+
+            } catch(e) {
+                console.error("Could not play cat5.mp4:", e);
             }
         }
 
@@ -637,6 +686,7 @@
                         obstacles.splice(i, 1);
                         playSound('shield');
                         emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
+                        playShieldVideo(); // --- NEW: Play cat5.mp4 ---
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
@@ -669,6 +719,11 @@
             catMemePlayer.classList.add('hidden'); // MODIFIED
             catMemePlayer.src = ''; // MODIFIED
             if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+            
+            // NEW: Hide shield video on Game Over
+            shieldVideoPlayer.classList.add('hidden');
+            shieldVideoPlayer.src = '';
+            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
             
             // NEW: Play fanfare and stop music
             playSound('fanfare'); 
@@ -745,6 +800,11 @@
             catMemePlayer.classList.add('hidden'); // MODIFIED
             catMemePlayer.src = ''; // MODIFIED
             if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+
+            // NEW: Hide shield video on Restart
+            shieldVideoPlayer.classList.add('hidden');
+            shieldVideoPlayer.src = '';
+            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
             
             playSound('music');
             gameLoop();
@@ -916,7 +976,17 @@
             try {
                 modalTitle.textContent = 'Space Dodger';
                 modalScore.textContent = 'Dodge the meteors!';
-                restartButton.textContent = 'Start Game';
+                
+                // --- MODIFICATION: Check if auth is ready ---
+                if (isAuthReady) {
+                    restartButton.textContent = 'Start Game';
+                    restartButton.disabled = false;
+                } else {
+                    restartButton.textContent = 'Loading...';
+                    restartButton.disabled = true;
+                }
+                // --- END MODIFICATION ---
+                
                 submitScoreForm.classList.add('hidden');
                 leaderboardModalContainer.classList.add('hidden'); // Hide leaderboard
                 restartButton.classList.remove('hidden');
@@ -955,6 +1025,7 @@
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
             catMemePlayer = document.getElementById('catMemePlayer'); // MODIFIED
+            shieldVideoPlayer = document.getElementById('shieldVideoPlayer'); // NEW
             
             // --- Add all Event Listeners ---
             document.addEventListener('keydown', (e) => {
@@ -971,6 +1042,12 @@
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
             restartButton.addEventListener('click', () => {
+                // NEW: Don't start if auth isn't ready
+                if (!isAuthReady && restartButton.textContent === 'Loading...') {
+                    console.log("Waiting for auth...");
+                    return;
+                }
+                
                 if (!soundInitialized && typeof Tone !== 'undefined') {
                     Tone.start().then(() => {
                         console.log("AudioContext started!");
@@ -998,4 +1075,6 @@
     </script>
 </body>
 </html>
+
+
 
