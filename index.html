@@ -173,7 +173,7 @@
         // --- AAA Feature Variables ---
         let particles = [];
         let stars = [];
-        let initialResizeDone = false; // --- NEW: Flag for first resize ---
+        // let initialResizeDone = false; // --- REMOVED: Reverted this logic ---
 
         // --- Image Assets ---
         let playerImage = new Image(), playerImageLoaded = false;
@@ -334,11 +334,12 @@
             const cssHeight = container.clientHeight;
 
             // --- BUG FIX: Check for 0 size during initial load ---
-            if (cssWidth === 0 || cssHeight === 0) {
-                console.warn(`resizeCanvas called with zero dimensions (${cssWidth}x${cssHeight}). Skipping.`);
-                return; // Do nothing if container has no size yet
-            }
-            // --- END BUG FIX ---
+            // --- REVERTED: Removed this check as it caused issues ---
+            // if (cssWidth === 0 || cssHeight === 0) {
+            //     console.warn(`resizeCanvas called with zero dimensions (${cssWidth}x${cssHeight}). Skipping.`);
+            //     return; // Do nothing if container has no size yet
+            // }
+            // --- END REVERT ---
 
             // Set internal resolution
             canvas.width = cssWidth * dpr;
@@ -366,17 +367,11 @@
                 player.y = cssHeight - player.height - 10; // 10px from bottom
             }
             
-            // --- MODIFIED: Trigger initial setup on FIRST valid resize ---
-            if (!initialResizeDone && cssWidth > 0 && cssHeight > 0) {
-                initialResizeDone = true;
-                console.log("Initial resize complete, setting up stars and main modal.");
-                initStars(cssWidth, cssHeight); // Initial star render
-                main(); // Show the Start Game modal
-            }
-            // --- END MODIFICATION ---
+            // --- REVERTED: Initialize stars directly ---
+            initStars(cssWidth, cssHeight); // Initial star render
 
-            // Redraw if game is running (and not the first time)
-            if (initialResizeDone && !isGameOver) {
+            // Redraw if game is running
+            if (!isGameOver) {
                 ctx.clearRect(0, 0, cssWidth, cssHeight);
                 if(player) drawPlayer();
                 updateAndDrawObstacles();
@@ -643,13 +638,12 @@
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
 
-            // Failsafe check (should not be needed with new resize logic, but safe)
-            if (cssWidth === 0 || cssHeight === 0) {
-                console.error(`initGame called with zero dimensions (${cssWidth}x${cssHeight}). Retrying...`);
-                // Use requestAnimationFrame to wait for the next possible layout calculation
-                requestAnimationFrame(initGame); 
-                return; // Stop execution
-            }
+            // Failsafe check (REVERTED - This was causing problems)
+            // if (cssWidth === 0 || cssHeight === 0) {
+            //     console.error(`initGame called with zero dimensions (${cssWidth}x${cssHeight}). Retrying...`);
+            //     requestAnimationFrame(initGame); 
+            //     return; // Stop execution
+            // }
             // --- END MODIFICATION ---
 
             console.log(`initGame starting with dimensions ${cssWidth}x${cssHeight}.`);
@@ -918,62 +912,38 @@
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
-            // --- MODIFIED: Ultra-Failsafe Click Handler ---
+            // --- MODIFIED: Ultra-Failsafe Click Handler (Reverted) ---
             restartButton.addEventListener('click', () => {
                 try {
                     // --- REMOVED AUTH CHECK ---
 
-                    // If game is already running, this button is "Play Again", so just init.
-                    // If this is the first start, soundInitialized will be false.
                     if (soundInitialized) {
-                         // MODIFIED: Delay initGame slightly
-                        requestAnimationFrame(initGame); // Wait for next frame
+                        // Sound is ready, just start/restart the game
+                        initGame(); // Call directly
                         return;
                     }
 
                     // --- First time click: Try to start audio ---
                     if (typeof Tone !== 'undefined') {
-                        
-                        // Failsafe: Promise.race to prevent Tone.start() from hanging
-                        const startAudio = () => {
-                            return Tone.start().then(() => {
-                                console.log("AudioContext started!");
-                                initSounds(); // Define the synths
-                                soundInitialized = true;
-                            }).catch(e => {
-                                console.error("Tone.start() failed, will run game without sound effects:", e);
-                                soundInitialized = false; // Mark as failed
-                            });
-                        };
-
-                        const audioTimeout = (ms) => {
-                            return new Promise((resolve) => setTimeout(() => {
-                                console.warn(`Tone.start() timed out after ${ms}ms.`);
-                                resolve(); // Just resolve, don't reject
-                            }, ms));
-                        };
-
-                        // Race Tone.start() against a 2-second timer
-                        Promise.race([startAudio(), audioTimeout(2000)])
-                            .finally(() => {
-                                // Whether it succeeded, failed, or timed out, start the game.
-                                console.log("Audio init finished or timed out. Starting game.");
-                                 // MODIFIED: Delay initGame slightly
-                                requestAnimationFrame(initGame); // Wait for next frame
-                            });
-                        
+                        Tone.start().then(() => {
+                            console.log("AudioContext started!");
+                            initSounds();
+                            soundInitialized = true;
+                            initGame(); // Start game *after* sound is ready
+                        }).catch(e => {
+                            console.error("Tone.start() failed, will run game without sound effects:", e);
+                            soundInitialized = false; // Mark as failed
+                            initGame(); // Start game anyway
+                        });
                     } else {
                         // Tone.js isn't loaded.
                         console.warn("Tone.js not loaded. Starting game without sound effects.");
                         soundInitialized = false;
-                         // MODIFIED: Delay initGame slightly
-                        requestAnimationFrame(initGame); // Wait for next frame
+                        initGame(); // Start game anyway
                     }
-                    
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
-                      // MODIFIED: Delay initGame slightly
-                    requestAnimationFrame(initGame); // Failsafe: Wait for next frame
+                     initGame(); // Failsafe: Call directly
                 }
             });
             // --- END MODIFICATION ---
@@ -982,10 +952,9 @@
             window.addEventListener('resize', resizeCanvas); // Resize canvas on window resize
 
             // --- Run the main startup logic ---
-            // MODIFIED: Remove initial calls, rely on resize event
-            // resizeCanvas(); 
-            // initStars(gameContainer.clientWidth, gameContainer.clientHeight); 
-            // main(); 
+            // MODIFIED: Reverted - Call main directly to show modal
+            resizeCanvas(); // Call resize once to get initial size
+            main(); // Call main to show the modal
         }
 
         // --- Wait for DOM to be ready before running setup ---
