@@ -63,7 +63,10 @@
 <body class="text-white flex flex-col items-center h-screen pt-4 pb-12">
 
     <!-- Game Title -->
-    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Void Runner</h1>
+    <h1 class="text-3xl md:text-4xl font-bold mb-1 text-glow-cyan">Void Runner</h1>
+    
+    <!-- Credit -->
+    <p class="text-xs text-gray-400 mb-2">Made by Ash for Re community</p>
 
     <!-- Score Display -->
     <div class="mb-2 text-lg md:text-2xl">
@@ -133,6 +136,7 @@
         let player, obstacles = [], score = 0, lives = 3;
         let gameSpeed = 1.0, isGameOver = false, animationFrameId;
         let obstacleSpawnTimer = 0, obstacleSpawnInterval = 100;
+        let lastObstacleTime = 0; // NEW: Track time between obstacles
         let shieldTimer = 0;
         const SHIELD_DURATION = 300;
         let moveLeft = false, moveRight = false;
@@ -540,7 +544,8 @@
             gameSpeed = 1.0;
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 80;
+            obstacleSpawnInterval = 90; // Match the new base interval
+            lastObstacleTime = 0;
             shieldTimer = 0;
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
@@ -690,14 +695,19 @@
                 obstacleSpawnTimer++;
                 
                 const progress = Math.min(1, score / 500);
-                const baseInterval = 80;
-                const minInterval = 30;
+                const baseInterval = 90; // Increased from 80
+                const minInterval = 40; // Increased from 30
                 const reduction = (baseInterval - minInterval) * progress;
                 obstacleSpawnInterval = Math.max(minInterval, baseInterval - reduction);
                 
-                if (obstacleSpawnTimer >= obstacleSpawnInterval) {
+                // NEW: Add random variance to prevent clustering
+                const randomVariance = Math.floor(Math.random() * 20) - 10; // -10 to +10 frames
+                const adjustedInterval = Math.max(minInterval, obstacleSpawnInterval + randomVariance);
+                
+                if (obstacleSpawnTimer >= adjustedInterval) {
                     createFallingObject();
                     obstacleSpawnTimer = 0;
+                    lastObstacleTime = Date.now();
                 }
                 
                 drawPlayer();
