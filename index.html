@@ -308,8 +308,10 @@
                 // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned in onDomReady
                 const randomId = catVideoIds[Math.floor(Math.random() * catVideoIds.length)];
                 
-                // Set the video source to autoplay (MUST be muted)
-                catVideoPlayer.src = `https://www.youtube.com/embed/${randomId}?autoplay=1&mute=1&controls=0`;
+                // MODIFIED: Removed autoplay=1 and mute=1. Added controls=1.
+                // This is REQUIRED by browsers to allow sound.
+                // The user must now click "play" on the video.
+                catVideoPlayer.src = `https://www.youtube.com/embed/${randomId}?controls=1`;
                 
                 // Show the player
                 catVideoPlayer.classList.remove('hidden');
@@ -553,7 +555,8 @@
             obstacles.push({
                 x: Math.random() * (cssWidth - objectSize), y: -objectSize,
                 width: objectSize, height: objectSize,
-                speed: (Math.random() * 2 + baseSpeed) * (cssHeight / 600), // Scale speed by height
+                // MODIFIED: Removed faulty height scaling. This fixes the "no objects" bug.
+                speed: (Math.random() * 2 + baseSpeed), 
                 type: objectType
             });
         }
@@ -954,4 +957,5 @@
     </script>
 </body>
 </html>
+
 
