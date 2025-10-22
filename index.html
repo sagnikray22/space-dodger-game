@@ -898,7 +898,7 @@ let canvas, ctx;
         function main() {
             try {
                 modalTitle.textContent = 'Void Runner';
-                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`;
+                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors and shoot them down!</span>`;
                 
                 restartButton.textContent = 'Start Game';
                 restartButton.disabled = false;
@@ -907,6 +907,8 @@ let canvas, ctx;
                 modalBackdrop.classList.remove('hidden');
                 endScreenVideo.classList.add('hidden');
                 loadAllImages();
+                
+                console.log('Game initialized successfully');
             } catch (error) {
                 console.error("Error in main() function:", error);
                 const modal = document.getElementById('modalBackdrop');
