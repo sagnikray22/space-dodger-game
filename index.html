@@ -63,35 +63,9 @@
             color: #cbd5e1; /* slate-300 */
         }
 
-        /* Leaderboard Styles (for inside the modal) */
-        .leaderboard-container {
-            width: 100%; /* Full width of modal */
-            margin-top: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid #8B5CF6; /* Purple border */
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
-        }
-        .leaderboard-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 200px; /* Scrollable list */
-            overflow-y: auto;
-        }
-        .leaderboard-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
-            font-size: 0.9rem;
-        }
-        .leaderboard-item:last-child {
-            border-bottom: none;
-        }
-        .leaderboard-item .name { color: #fff; }
-        .leaderboard-item .score { color: #FACC15; }
+        /* Leaderboard Styles (REMOVED - Not in use) */
+        .leaderboard-container { display: none; }
+        .leaderboard-list { display: none; }
     </style>
 </head>
 <!-- MODIFIED: h-screen to fill viewport -->
@@ -104,8 +78,6 @@
     <div class="mb-2 text-lg md:text-2xl">
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
-
-    <!-- REMOVED: YouTube Player -->
 
     <!-- NEW: Hidden <video> for Cat Memes -->
     <video id="catMemePlayer"
@@ -142,8 +114,6 @@
         </button>
     </div>
 
-    <!-- Leaderboard Section (REMOVED from here) -->
-
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
@@ -153,45 +123,31 @@
             <!-- MODIFIED: Removed glow from subtitle -->
             <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
             
-            <!-- Submit Score Form -->
-            <!-- MODIFIED: Added 'hidden' to permanently hide the form -->
-            <div id="submitScoreForm" class="hidden">
-                <input type="text" id="playerNameInput" placeholder="Enter your name" class="w-full p-2 rounded bg-gray-700 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-cyan-300">
-                <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50 disabled:bg-gray-500 disabled:shadow-none disabled:cursor-not-allowed">
-                    Submit Score
-                </button>
-            </div>
+            <!-- Submit Score Form (REMOVED) -->
+            <div id="submitScoreForm" class="hidden"></div>
 
             <!-- "Play Again" / "Start Game" Button -->
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
 
-            <!-- NEW: Leaderboard Section (MOVED here) -->
-            <!-- MODIFIED: Added 'hidden' to permanently hide the leaderboard -->
-            <div id="leaderboard-modal-container" class="leaderboard-container hidden">
-                <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
-                <ol id="leaderboardList" class="leaderboard-list">
-                    <!-- Scores will be populated by JavaScript -->
-                </ol>
-            </div>
-            <!-- END NEW -->
+            <!-- Leaderboard Section (REMOVED) -->
+            <div id="leaderboard-modal-container" class="hidden"></div>
 
         </div>
     </div>
 
     <script type="module">
-        // --- Firebase SDK Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- Firebase SDK Imports (REMOVED) ---
+        // import { initializeApp } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Declare variables, assign them after DOM loads ---
         let canvas, ctx;
         let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo; // MODIFIED
-        let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
         let moveLeftBtn, moveRightBtn, gameContainer;
-        let leaderboardModalContainer, catMemePlayer; // MODIFIED
+        let catMemePlayer; // MODIFIED
         let shieldVideoPlayer; // NEW: For cat5.mp4
  
 
@@ -205,7 +161,7 @@
         let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
         let endScreenVideoTimeout; // NEW: Timer for end screen video
         let shieldVideoTimeout; // NEW: Timer for shield video
-        let isAuthReady = false; // NEW: Auth state tracking
+        // let isAuthReady = false; // REMOVED
  
         // --- NEW: Add your Cat Meme filenames here! ---
         // 1. Upload your .mp4 files to GitHub
@@ -227,11 +183,11 @@
         const logoImageFilename = 'logo.png';
         let meteorImage = new Image(), meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
-        let octopusImage = new Image(), octopusImageLoaded = false;
-        const octopusImageFilename = 'octopus.png';
+        // let octopusImage = new Image(), octopusImageLoaded = false; // REMOVED
+        // const octopusImageFilename = 'octopus.png'; // REMOVED
 
-        // --- Firebase Variables ---
-        let db, auth, userId, appId;
+        // --- Firebase Variables (REMOVED) ---
+        // let db, auth, userId, appId;
 
         // --- Hybrid Sound System ---
         let sounds = {
@@ -288,49 +244,8 @@
             }
         }
         
-        // --- Firebase Initialization ---
-        async function initFirebase() {
-            try {
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-                const firebaseConfig = JSON.parse(firebaseConfigStr);
-                if (!firebaseConfig.apiKey) {
-                    console.warn("Firebase config not found. Leaderboard will not work.");
-                    return;
-                }
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                setLogLevel('Debug');
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        console.log("User is signed in:", user.uid);
-                        userId = user.uid;
-                        if (!isAuthReady) { // Only run this once
-                            isAuthReady = true; // NEW: Auth is ready
-                            loadLeaderboard(); // Load leaderboard on auth
-                            
-                            // NEW: Enable the start button
-                            if (restartButton.textContent === 'Loading...') {
-                                restartButton.textContent = 'Start Game';
-                                restartButton.disabled = false;
-                            }
-                        }
-                    } else {
-                        console.log("User is signed out.");
-                        userId = null;
-                    }
-                });
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Firebase Init Error:", error);
-            }
-        }
-
+        // --- Firebase Initialization (REMOVED) ---
+        
         // --- NEW: Function to play a random cat meme ---
         function playRandomCatMeme() {
             try {
@@ -391,69 +306,9 @@
             }
         }
 
-        // --- Load Leaderboard Data ---
-        function loadLeaderboard() {
-            if (!db) {
-                console.log("Leaderboard load skipped: DB not ready.");
-                return;
-            }
-            const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
-            const q = query(leaderboardCol);
-            onSnapshot(q, (snapshot) => {
-                let scores = [];
-                snapshot.forEach(doc => scores.push(doc.data()));
-                const sortedScores = scores.sort((a, b) => b.score - a.score).slice(0, 10);
-                displayLeaderboard(sortedScores);
-            }, (error) => console.error("Error loading leaderboard:", error));
-        }
-
-        // --- Display Leaderboard (in modal) ---
-        function displayLeaderboard(scores) {
-            leaderboardList.innerHTML = ''; // Clear old list
-            if (scores.length === 0) {
-                leaderboardList.innerHTML = '<li class="text-center text-gray-400">Be the first to set a score!</li>';
-                return;
-            }
-            scores.forEach((entry, index) => {
-                const li = document.createElement('li');
-                li.className = 'leaderboard-item';
-                li.innerHTML = `
-                    <span class="name">${index + 1}. ${entry.name || 'Anonymous'}</span>
-                    <span class="score">${entry.score}</span>
-                `;
-                leaderboardList.appendChild(li);
-            });
-        }
-
-        // --- Submit Score ---
-        async function submitScore() {
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) {
-                playerNameInput.placeholder = "Please enter your name!";
-                playerNameInput.classList.add('border-red-500');
-                setTimeout(() => {
-                   playerNameInput.classList.remove('border-red-500');
-                   playerNameInput.placeholder = "Enter your name";
-                }, 2000);
-                return;
-            }
-            if (!db || !userId) {
-                console.error("Database not ready to submit score.");
-                return;
-            }
-            try {
-                const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
-                await addDoc(leaderboardCol, { name: playerName, score: score, timestamp: new Date() });
-                console.log("Score submitted!");
-                playerNameInput.disabled = true;
-                submitScoreBtn.disabled = true;
-                submitScoreBtn.textContent = 'Submitted!';
-                submitScoreBtn.classList.remove('bg-green-500');
-                submitScoreBtn.classList.add('bg-gray-500');
-            } catch (error) {
-                console.error("Error submitting score:", error);
-            }
-        }
+        // --- Load Leaderboard Data (REMOVED) ---
+        // --- Display Leaderboard (REMOVED) ---
+        // --- Submit Score (REMOVED) ---
 
         // --- Load Images ---
         function loadAllImages() {
@@ -466,9 +321,9 @@
             meteorImage.src = meteorImageFilename;
             meteorImage.onload = () => meteorImageLoaded = true;
             meteorImage.onerror = () => console.error("Error loading meteor image");
-            octopusImage.src = octopusImageFilename;
-            octopusImage.onload = () => octopusImageLoaded = true;
-            octopusImage.onerror = () => console.error("Error loading octopus image");
+            // octopusImage.src = octopusImageFilename; // REMOVED
+            // octopusImage.onload = () => octopusImageLoaded = true; // REMOVED
+            // octopusImage.onerror = () => console.error("Error loading octopus image"); // REMOVED
         }
 
 
@@ -509,6 +364,262 @@
                 player.y = cssHeight - player.height - 10; // 10px from bottom
             }
             
+            initStars(cssWidth, cssHeight);
+
+            if (!isGameOver) {
+                ctx.clearRect(0, 0, cssWidth, cssHeight);
+                if(player) drawPlayer();
+                updateAndDrawObstacles();
+            }
+        }
+
+        // MODIFIED: Create player for non-square
+        function createPlayer() {
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
+            const playerSize = cssHeight * 0.1; // 10% of height
+            return {
+                x: cssWidth / 2 - playerSize / 2,
+                y: cssHeight - playerSize - 10, // 10px from bottom
+                width: playerSize,
+                height: playerSize,
+                speed: cssWidth * 0.008,
+                isShielded: false,
+                invincibilityTimer: 0
+            };
+        }
+
+        // Draw player (unchanged)
+        function drawPlayer() {
+            if (player.isShielded) {
+                ctx.save();
+                const centerX = player.x + player.width / 2;
+                const centerY = player.y + player.height / 2;
+                const radius = player.width * 0.7;
+                const pulse = Math.abs(Math.sin(Date.now() * 0.01));
+                ctx.fillStyle = `rgba(238, 130, 238, ${0.2 + pulse * 0.2})`;
+                ctx.strokeStyle = `rgba(255, 0, 255, ${0.6 + pulse * 0.3})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
+                // Skip drawing to flicker
+            } else {
+                if (playerImageLoaded) {
+                    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+                } else {
+                    ctx.fillStyle = '#4A90E2';
+                    ctx.shadowColor = '#81D4FA';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(player.x, player.y, player.width, player.height);
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
+        // MODIFIED: Draw UI for non-square
+        function drawUI() {
+            // MODIFIED: Use gameContainer
+            const cssHeight = gameContainer.clientHeight;
+            const lifeSize = cssHeight * 0.05; // 5% of height
+            const padding = cssHeight * 0.02;
+            ctx.save();
+            if (playerImageLoaded) {
+                ctx.globalAlpha = 0.8;
+                for (let i = 0; i < lives; i++) {
+                    ctx.drawImage(playerImage, padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
+                }
+                ctx.globalAlpha = 1.0;
+            } else {
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                for (let i = 0; i < lives; i++) {
+                    ctx.fillRect(padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
+                }
+            }
+            ctx.restore();
+        }
+
+        // MODIFIED: Update player for non-square
+        function updatePlayer() {
+            if (moveLeft) player.x -= player.speed;
+            if (moveRight) player.x += player.speed;
+            if(moveLeft || moveRight) emitThrusterParticles();
+
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
+        }
+
+        // MODIFIED: Create falling object for non-square
+        function createFallingObject() {
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
+            const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02); // Based on width
+            let objectType = 'meteor', baseSpeed = gameSpeed;
+            const rand = Math.random();
+            if (rand < 0.05 && score > 200) {
+                objectType = 'booster';
+                baseSpeed = gameSpeed * 1.2;
+            } else if (rand < 0.10 && score > 100) {
+                objectType = 'bomb';
+                baseSpeed = gameSpeed * 1.1;
+            }
+            
+            // --- BUG FIX: Ensure speed is always positive ---
+            const calculatedSpeed = (Math.random() * 2 + baseSpeed);
+            
+            obstacles.push({
+                x: Math.random() * (cssWidth - objectSize), y: -objectSize,
+                width: objectSize, height: objectSize,
+                speed: Math.max(1.0, calculatedSpeed), // Failsafe, speed must be at least 1.0
+                type: objectType
+            });
+        }
+
+        // Draw bomb (unchanged)
+        function drawBomb(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#222'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.fill();
+            ctx.beginPath(); ctx.arc(centerX, centerY - radius * 0.8, radius * 0.2, 0, 2 * Math.PI);
+            ctx.fillStyle = '#999'; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(centerX, centerY - radius * 0.9);
+            ctx.lineTo(centerX + radius * 0.1, centerY - radius * 1.2);
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.stroke();
+            ctx.beginPath(); ctx.arc(centerX + radius * 0.1, centerY - radius * 1.2, radius * 0.15, 0, 2 * Math.PI);
+            ctx.fillStyle = 'yellow'; ctx.shadowColor = 'orange'; ctx.shadowBlur = 15; ctx.fill();
+            ctx.restore();
+        }
+
+        // Draw booster (unchanged)
+        function drawBooster(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(200, 255, 200, 1)');
+            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 150, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = '#00FF00'; ctx.shadowBlur = 20; ctx.fill();
+            ctx.restore();
+        }
+
+        // MODIFIED: Update/draw obstacles for non-square
+        function updateAndDrawObstacles() {
+            // MODIFIED: Use gameContainer
+            const cssHeight = gameContainer.clientHeight;
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += obs.speed;
+                if (obs.type === 'meteor') {
+                    if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
+                    else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
+                } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
+                else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
+
+                if (obs.y > cssHeight) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    scoreEl.textContent = score;
+                    // This logic is replaced in gameLoop, but harmless
+                    // if (score >= 500 && score % 100 === 0) gameSpeed += 0.2; 
+                }
+            }
+        }
+
+        // Check collisions (unchanged)
+        function checkCollisions() {
+            if (player.invincibilityTimer > 0) return;
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                const padding = player.width * 0.15;
+                if (player.x < obs.x + obs.width - padding && player.x + player.width > obs.x + padding &&
+                    player.y < obs.y + obs.height - padding && player.y + player.height > obs.y + padding) {
+                    if (obs.type === 'booster') {
+                        player.isShielded = true;
+                        shieldTimer = SHIELD_DURATION;
+                        obstacles.splice(i, 1);
+                        playSound('shield');
+                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
+                        playShieldVideo(); // --- NEW: Play cat5.mp4 ---
+                    } else if (obs.type === 'meteor' || obs.type === 'bomb') {
+                        if (player.isShielded) {
+                            obstacles.splice(i, 1);
+                            playSound('hit');
+                            emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 30, '#FF00FF');
+                        } else {
+                            lives--;
+                            playSound(obs.type === 'bomb' ? 'gameover' : 'hit');
+                            emitParticles(player.x + player.width / 2, player.y + player.height / 2, 40, '#FF4500');
+                            obstacles.splice(i, 1);
+                            if (lives <= 0) {
+                                gameOver();
+                                break;
+                            } else {
+                                player.invincibilityTimer = 240;
+                                playRandomCatMeme(); // --- MODIFIED: Play meme ---
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // MODIFIED: Game over (to show leaderboard & confetti)
+        function gameOver() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId);
+            
+            // NEW: Hide cat video on Game Over
+            catMemePlayer.classList.add('hidden'); // MODIFIED
+            catMemePlayer.src = ''; // MODIFIED
+            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+            
+            // NEW: Hide shield video on Game Over
+            shieldVideoPlayer.classList.add('hidden');
+            shieldVideoPlayer.src = '';
+            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
+            
+            // NEW: Play fanfare and stop music
+            playSound('fanfare'); 
+            sounds.music.pause();
+            
+            // NEW: Emit confetti
+            // MODIFIED: Use gameContainer
+            emitConfetti(gameContainer.clientWidth, gameContainer.clientHeight);
+            
+            modalTitle.textContent = 'Game Over!';
+            modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
+            
+            // MODIFIED: Show cat4.mp4 video
+            try {
+                if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear previous
+                endScreenVideo.src = 'cat4.mp4';
+                endScreenVideo.classList.remove('hidden');
+                endScreenVideo.play().catch(e => {
+                    console.warn("End screen video autoplay blocked. User must click play.", e.message);
+                });
+                
+                // --- NEW: Hide video after 5 seconds ---
+                endScreenVideoTimeout = setTimeout(() => {
+                    endScreenVideo.classList.add('hidden');
+                    endScreenVideo.src = '';
+                }, 5000); // 5 seconds
+                // --- END NEW ---
+
+            } catch (e)
+                console.error("Could not load cat4.mp4", e);
+            }
+            
             // MODIFIED: Removed code that showed the submit form and leaderboard
             // submitScoreForm.classList.remove('hidden'); // REMOVED
             restartButton.classList.remove('hidden');
@@ -541,12 +652,13 @@
             endScreenVideo.src = ''; // Stop it from playing
             if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear timer
         
-            playerNameInput.disabled = false;
-            playerNameInput.value = '';
-            submitScoreBtn.disabled = false;
-            submitScoreBtn.textContent = 'Submit Score';
-            submitScoreBtn.classList.add('bg-green-500');
-            submitScoreBtn.classList.remove('bg-gray-500');
+            // MODIFIED: Remove leaderboard/submit logic
+            // playerNameInput.disabled = false;
+            // playerNameInput.value = '';
+            // submitScoreBtn.disabled = false;
+            // submitScoreBtn.textContent = 'Submit Score';
+            // submitScoreBtn.classList.add('bg-green-500');
+            // submitScoreBtn.classList.remove('bg-gray-500');
             // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
             // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
             
@@ -664,7 +776,7 @@
         }
 
         // --- *** MAJOR BUG FIX *** ---
-        // --- MODIFIED: Main game loop (for non-square) ---
+        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
         function gameLoop() {
             // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
@@ -731,29 +843,9 @@
                 modalTitle.textContent = 'Void Runner'; // MODIFIED: New Name
                 modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`; // MODIFIED: Use new font class
                 
-                // --- MODIFICATION: Check if auth is ready ---
-                if (isAuthReady) {
-                    restartButton.textContent = 'Start Game';
-                    restartButton.disabled = false;
-                } else {
-                    restartButton.textContent = 'Loading...';
-                    restartButton.disabled = true;
-                }
-                // --- END MODIFICATION ---
-                
-                // --- NEW: Add a failsafe timer ---
-                // If auth takes more than 5s, start the game anyway.
-                setTimeout(() => {
-                    if (!isAuthReady) {
-                        console.warn("Auth timeout. Forcing game start.");
-                        isAuthReady = true; // Force-enable
-                        if (restartButton.textContent === 'Loading...') {
-                            restartButton.textContent = 'Start Game';
-                            restartButton.disabled = false;
-                        }
-                    }
-                }, 5000); // 5 seconds
-                // --- END NEW ---
+                // --- MODIFICATION: REMOVED ALL AUTH CHECKS ---
+                restartButton.textContent = 'Start Game';
+                restartButton.disabled = false;
                 
                 // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
                 // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
@@ -761,7 +853,7 @@
                 modalBackdrop.classList.remove('hidden');
                 endScreenVideo.classList.add('hidden'); // MODIFIED
                 loadAllImages();
-                initFirebase();
+                // initFirebase(); // REMOVED
             } catch (error) {
                 console.error("Error in main() function:", error);
                 const modal = document.getElementById('modalBackdrop');
@@ -785,11 +877,11 @@
             modalScore = document.getElementById('modalScore');
             restartButton = document.getElementById('restartButton');
             endScreenVideo = document.getElementById('endScreenVideo'); // MODIFIED
-            leaderboardList = document.getElementById('leaderboardList');
-            leaderboardModalContainer = document.getElementById('leaderboard-modal-container'); // NEW
-            submitScoreForm = document.getElementById('submitScoreForm');
-            playerNameInput = document.getElementById('playerNameInput');
-            submitScoreBtn = document.getElementById('submitScoreBtn');
+            // leaderboardList = document.getElementById('leaderboardList'); // REMOVED
+            // leaderboardModalContainer = document.getElementById('leaderboard-modal-container'); // REMOVED
+            // submitScoreForm = document.getElementById('submitScoreForm'); // REMOVED
+            // playerNameInput = document.getElementById('playerNameInput'); // REMOVED
+            // submitScoreBtn = document.getElementById('submitScoreBtn'); // REMOVED
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
             catMemePlayer = document.getElementById('catMemePlayer'); // MODIFIED
@@ -812,11 +904,11 @@
             // --- MODIFIED: Ultra-Failsafe Click Handler ---
             restartButton.addEventListener('click', () => {
                 try {
-                    // Don't start if the button is still in "Loading..." state
-                    if (!isAuthReady) {
-                        console.log("Waiting for auth...");
-                        return;
-                    }
+                    // --- REMOVED AUTH CHECK ---
+                    // if (!isAuthReady) {
+                    //     console.log("Waiting for auth...");
+                    //     return;
+                    // }
 
                     // If game is already running, this button is "Play Again", so just init.
                     // If this is the first start, soundInitialized will be false.
@@ -869,7 +961,7 @@
             });
             // --- END MODIFICATION ---
 
-            submitScoreBtn.addEventListener('click', submitScore);
+            // submitScoreBtn.addEventListener('click', submitScore); // REMOVED
             window.addEventListener('resize', resizeCanvas); // Resize canvas on window resize
 
             // --- Run the main startup logic ---
@@ -885,14 +977,4 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
