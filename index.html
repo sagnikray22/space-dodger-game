@@ -19,11 +19,7 @@
         canvas {
             background-color: #1A0A2A; /* Dark Purple */
             touch-action: none; /* Disable touch gestures on canvas */
-            background-image: 
-                radial-gradient(circle at 20% 30%, rgba(200, 150, 255, 0.2), transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(180, 100, 220, 0.15), transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(220, 180, 255, 0.05), transparent 20%);
-            background-size: 100% 100%;
+            /* Removed background-image from here, will be drawn on canvas */
         }
         .modal-backdrop {
             position: fixed;
@@ -158,6 +154,11 @@
         const SHIELD_DURATION = 300; // 5 seconds
         let moveLeft = false, moveRight = false;
         
+        // --- NEW: AAA Feature Variables ---
+        let particles = [];
+        let stars = [];
+        let musicLoop;
+
         // --- Image Assets ---
         let playerImage = new Image(), playerImageLoaded = false;
         const playerImageFilename = 'spaceship.png';
@@ -176,7 +177,7 @@
         let synth, bombSynth, shieldSynth, hitSynth;
         
         function initSounds() {
-            // Create synths
+            // Create SFX synths
             synth = new Tone.Synth().toDestination();
             bombSynth = new Tone.MembraneSynth().toDestination();
             shieldSynth = new Tone.Synth({
@@ -187,6 +188,26 @@
                 noise: { type: "pink" },
                 envelope: { attack: 0.01, decay: 0.15, sustain: 0 }
             }).toDestination();
+
+            // --- NEW: Create Music Synth and Loop ---
+            const musicSynth = new Tone.MonoSynth({
+                oscillator: { type: "fmsquare" },
+                envelope: { attack: 0.01, decay: 0.1, release: 0.1 },
+                filter: { Q: 2, type: "lowpass", rollover: -12 },
+                filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 300, octaves: 2 }
+            }).toDestination();
+            musicSynth.volume.value = -18; // Make it quiet background music
+
+            const notes = ["C2", null, "C2", "G1", "C2", "F2", "C2", null];
+            let noteIndex = 0;
+            musicLoop = new Tone.Loop(time => {
+                let note = notes[noteIndex % notes.length];
+                if (note) {
+                    musicSynth.triggerAttackRelease(note, "8n", time);
+                }
+                noteIndex++;
+            }, "8n"); // Play every 8th note
+            // --- END NEW ---
 
             console.log("Sounds initialized");
             soundInitialized = true;
@@ -382,6 +403,9 @@
                 player.y = size - player.height - 10;
             }
             
+            // --- NEW: Re-init stars on resize ---
+            initStars(size);
+
             if (!isGameOver) {
                 ctx.clearRect(0, 0, size, size);
                 if(player) drawPlayer();
@@ -462,6 +486,12 @@
         function updatePlayer() {
             if (moveLeft) player.x -= player.speed;
             if (moveRight) player.x += player.speed;
+            
+            // --- NEW: Emit thruster particles ---
+            if(moveLeft || moveRight) {
+                emitThrusterParticles();
+            }
+
             const size = canvas.parentElement.clientWidth;
             if (player.x < 0) player.x = 0;
             if (player.x + player.width > size) player.x = size - player.width;
@@ -558,15 +588,22 @@
                         player.isShielded = true;
                         shieldTimer = SHIELD_DURATION;
                         obstacles.splice(i, 1);
-                        playSound('shield'); // NEW
+                        playSound('shield');
+                        // --- NEW: Emit shield particles ---
+                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
-                            playSound('hit'); // NEW
+                            playSound('hit');
+                            // --- NEW: Emit shield hit particles ---
+                            emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 30, '#FF00FF');
                         } else {
                             lives--;
+                            playSound(obs.type === 'bomb' ? 'gameover' : 'hit');
+                            // --- NEW: Emit player hit particles ---
+                            emitParticles(player.x + player.width / 2, player.y + player.height / 2, 40, '#FF4500');
+                            
                             obstacles.splice(i, 1);
-                            playSound(obs.type === 'bomb' ? 'gameover' : 'hit'); // NEW
                             if (lives <= 0) {
                                 gameOver();
                                 break;
@@ -583,7 +620,7 @@
         function gameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
-            playSound('gameover'); // NEW
+            playSound('gameover');
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
@@ -601,9 +638,12 @@
 
         // Start/restart game
         function initGame() {
-            resizeCanvas();
+            // resizeCanvas(); // Already called by listener, but good to ensure
+            const size = canvas.parentElement.clientWidth;
+            initStars(size); // Re-init stars
             player = createPlayer();
             obstacles = [];
+            particles = []; // Clear particles
             score = 0;
             lives = 3;
             gameSpeed = 1.0;
@@ -627,6 +667,89 @@
             
             gameLoop();
         }
+        
+        // --- NEW: Particle Functions ---
+        function emitParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4, // Random horizontal velocity
+                    vy: (Math.random() - 0.5) * 4, // Random vertical velocity
+                    size: Math.random() * 3 + 1,
+                    color: color,
+                    life: Math.random() * 60 + 30 // Life in frames
+                });
+            }
+        }
+
+        function emitThrusterParticles() {
+            if (!player) return;
+            const size = canvas.parentElement.clientWidth;
+            // Add 1-2 particles
+            for (let i = 0; i < 2; i++) {
+                particles.push({
+                    x: player.x + player.width / 2 + (Math.random() - 0.5) * (player.width * 0.5),
+                    y: player.y + player.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: Math.random() * 2 + 1.5, // Move downwards
+                    size: Math.random() * 2 + 1,
+                    color: '#FF4500', // Orange
+                    life: Math.random() * 30 + 20
+                });
+            }
+        }
+
+        function updateAndDrawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = p.life / 60; // Fade out
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                    ctx.restore();
+                }
+            }
+        }
+
+        // --- NEW: Starfield Functions ---
+        function createStar(size) {
+            return {
+                x: Math.random() * size,
+                y: Math.random() * size,
+                size: Math.random() * 2 + 1,
+                speed: Math.random() * 0.5 + 0.2 // Slow speeds for parallax
+            };
+        }
+
+        function initStars(size) {
+            stars = []; // Clear stars
+            for (let i = 0; i < 100; i++) {
+                stars.push(createStar(size));
+            }
+        }
+
+        function updateAndDrawStars(size) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for (let star of stars) {
+                star.y += star.speed;
+                if (star.y > size) {
+                    star.y = 0;
+                    star.x = Math.random() * size;
+                }
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            }
+            ctx.restore();
+        }
+
 
         // Main game loop
         function gameLoop() {
@@ -638,8 +761,15 @@
             if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
             const size = canvas.parentElement.clientWidth;
+            
+            // --- MODIFIED: Draw Background ---
             ctx.fillStyle = '#1A0A2A';
             ctx.fillRect(0, 0, size, size);
+            
+            // --- NEW: Draw Stars ---
+            updateAndDrawStars(size);
+            
+            // --- Draw Logo ---
             if (logoImageLoaded) {
                 ctx.save();
                 ctx.globalAlpha = 0.1;
@@ -647,6 +777,11 @@
                 ctx.drawImage(logoImage, (size - logoSize) / 2, (size - logoSize) / 2, logoSize, logoSize);
                 ctx.restore();
             }
+            
+            // --- NEW: Draw Particles (under player) ---
+            updateAndDrawParticles();
+
+            // --- Draw Game Objects ---
             updatePlayer();
             drawPlayer();
             updateAndDrawObstacles();
@@ -727,17 +862,26 @@
             moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
+            
             restartButton.addEventListener('click', () => {
                 if (!soundInitialized) {
                     Tone.start();
                     initSounds();
                 }
+                // --- NEW: Start music ---
+                if (Tone.Transport.state !== 'started') {
+                    Tone.Transport.start();
+                    musicLoop.start(0); // Start the loop
+                }
                 initGame();
             });
+
             submitScoreBtn.addEventListener('click', submitScore);
             window.addEventListener('resize', resizeCanvas);
 
             // --- Run the main startup logic ---
+            resizeCanvas(); // Set initial size
+            initStars(canvas.parentElement.clientWidth); // Init stars
             main(); 
         }
 
