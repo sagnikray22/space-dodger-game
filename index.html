@@ -126,7 +126,7 @@
             <!-- NEW: Submit Score Form -->
             <div id="submitScoreForm" class="hidden">
                 <input type="text" id="playerNameInput" placeholder="Enter your name" class="w-full p-2 rounded bg-gray-700 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-cyan-300">
-                <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50">
+                <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50 disabled:bg-gray-500 disabled:shadow-none disabled:cursor-not-allowed">
                     Submit Score
                 </button>
             </div>
@@ -319,16 +319,16 @@
             try {
                 const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
                 await addDoc(leaderboardCol, {
-                    name: playerName,
-                    score: score,
-                    userId: userId,
-                    createdAt: new Date().toISOString()
+<!-- ... existing code ...
                 });
                 
                 console.log("Score submitted!");
-                // Hide form, show restart button
-                submitScoreForm.classList.add('hidden');
-                restartButton.classList.remove('hidden');
+                // MODIFIED: Disable form instead of hiding it
+                playerNameInput.disabled = true;
+                submitScoreBtn.disabled = true;
+                submitScoreBtn.textContent = 'Submitted!';
+                submitScoreBtn.classList.remove('bg-green-500');
+                submitScoreBtn.classList.add('bg-gray-500');
 
             } catch (error) {
                 console.error("Error submitting score:", error);
@@ -591,10 +591,10 @@
                 modalImage.src = octopusImageFilename;
                 modalImage.classList.remove('hidden');
             }
-            
-            // NEW: Show submit form, hide restart button
+            // MODIFIED: Show submit form AND restart button
             submitScoreForm.classList.remove('hidden');
-            restartButton.classList.add('hidden');
+            restartButton.classList.remove('hidden');
+            restartButton.textContent = 'Play Again'; // Set text
             
             modalBackdrop.classList.remove('hidden');
         }
@@ -615,6 +615,15 @@
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
             modalImage.classList.add('hidden');
+            
+            // NEW: Reset submit form for next game
+            playerNameInput.disabled = false;
+            playerNameInput.value = ''; // Clear name
+            submitScoreBtn.disabled = false;
+            submitScoreBtn.textContent = 'Submit Score';
+            submitScoreBtn.classList.add('bg-green-500');
+            submitScoreBtn.classList.remove('bg-gray-500');
+            submitScoreForm.classList.add('hidden'); // Hide it until next game over
             
             gameLoop();
         }
@@ -709,4 +718,5 @@
     </script>
 </body>
 </html>
+
 
