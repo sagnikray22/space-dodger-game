@@ -8,8 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- NEW: Load Tone.js for sound, added defer -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" defer></script>
+    <!-- MODIFIED: Removed Tone.js script -->
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -43,7 +42,7 @@
             text-shadow: 0 0 2px #ff0, 0 0 6px #ff0, 0 0 12px #ff0;
         }
 
-        /* NEW: Leaderboard Styles */
+        /* Leaderboard Styles */
         .leaderboard-container {
             width: 90%;
             max-width: 600px;
@@ -104,7 +103,7 @@
         </button>
     </div>
 
-    <!-- NEW: Leaderboard Section -->
+    <!-- Leaderboard Section -->
     <div class="leaderboard-container">
         <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
         <ol id="leaderboardList" class="leaderboard-list">
@@ -119,7 +118,7 @@
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
             
-            <!-- NEW: Submit Score Form -->
+            <!-- Submit Score Form -->
             <div id="submitScoreForm" class="hidden">
                 <input type="text" id="playerNameInput" placeholder="Enter your name" class="w-full p-2 rounded bg-gray-700 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-cyan-300">
                 <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50 disabled:bg-gray-500 disabled:shadow-none disabled:cursor-not-allowed">
@@ -135,12 +134,12 @@
     </div>
 
     <script type="module">
-        // --- NEW: Firebase SDK Imports ---
+        // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- MODIFIED: Declare variables, assign them after DOM loads ---
+        // --- Declare variables, assign them after DOM loads ---
         let canvas, ctx;
         let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, modalImage;
         let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
@@ -154,10 +153,10 @@
         const SHIELD_DURATION = 300; // 5 seconds
         let moveLeft = false, moveRight = false;
         
-        // --- NEW: AAA Feature Variables ---
+        // --- AAA Feature Variables ---
         let particles = [];
         let stars = [];
-        let musicLoop;
+        // MODIFIED: Removed musicLoop
 
         // --- Image Assets ---
         let playerImage = new Image(), playerImageLoaded = false;
@@ -169,67 +168,35 @@
         let octopusImage = new Image(), octopusImageLoaded = false;
         const octopusImageFilename = 'octopus.png';
 
-        // --- NEW: Firebase Variables ---
+        // --- Firebase Variables ---
         let db, auth, userId, appId;
-        let soundInitialized = false;
+        // MODIFIED: Removed soundInitialized
 
-        // --- NEW: Sound Synthesizers (Tone.js) ---
-        let synth, bombSynth, shieldSynth, hitSynth;
+        // --- MODIFIED: Sound System (using HTML Audio) ---
+        // This creates audio objects that the game will play.
+        // Make sure you upload files with these EXACT names to GitHub.
+        let sounds = {
+            shield: new Audio('shield.mp3'),
+            hit: new Audio('hit.mp3'),
+            gameover: new Audio('gameover.mp3'),
+            music: new Audio('music.mp3')
+        };
+        sounds.music.loop = true; // Make the background music loop
+        sounds.music.volume = 0.3; // Background music should be quieter
+        // --- END MODIFICATION ---
         
-        function initSounds() {
-            // Create SFX synths
-            synth = new Tone.Synth().toDestination();
-            bombSynth = new Tone.MembraneSynth().toDestination();
-            shieldSynth = new Tone.Synth({
-                oscillator: { type: "pulse", width: 0.8 },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
-            }).toDestination();
-            hitSynth = new Tone.NoiseSynth({
-                noise: { type: "pink" },
-                envelope: { attack: 0.01, decay: 0.15, sustain: 0 }
-            }).toDestination();
-
-            // --- MODIFIED: Create Music Synth and Loop ---
-            const musicSynth = new Tone.FMSynth({
-                harmonicity: 3,
-                modulationIndex: 10,
-                envelope: { attack: 0.01, decay: 0.2, release: 0.5 },
-                filter: { Q: 1, type: "lowpass", rollover: -12 },
-                filterEnvelope: { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 400, octaves: 2 }
-            }).toDestination();
-            musicSynth.volume.value = -20; // Make it quiet background music
-
-            const notes = ["C2", "Eb2", "G2", "Bb2", "G2", "Eb2"]; // C minor 7 arpeggio
-            let noteIndex = 0;
-            musicLoop = new Tone.Loop(time => {
-                let note = notes[noteIndex % notes.length];
-                if (note) {
-                    musicSynth.triggerAttackRelease(note, "4n", time); // Play for a quarter note
-                }
-                noteIndex++;
-            }, "2n"); // Play every half note
-            // --- END MODIFICATION ---
-
-            console.log("Sounds initialized");
-            soundInitialized = true;
-        }
-
+        // --- MODIFIED: playSound function ---
         function playSound(sound) {
-            if (!soundInitialized) return;
-
-            const now = Tone.now();
-            if (sound === 'shield') {
-                shieldSynth.triggerAttackRelease("C5", "8n", now);
-                shieldSynth.triggerAttackRelease("G5", "8n", now + 0.1);
-            } else if (sound === 'hit') {
-                hitSynth.triggerAttackRelease("4n", now);
-            } else if (sound === 'gameover') {
-                bombSynth.triggerAttackRelease("C2", "4n", now);
-                bombSynth.triggerAttackRelease("G1", "4n", now + 0.2);
+            if (sounds[sound]) {
+                sounds[sound].currentTime = 0; // Rewind to start
+                sounds[sound].play().catch(e => {
+                    // This error is common if the user hasn't interacted yet
+                    console.warn("Sound play failed (user interaction might be needed):", e.message);
+                });
             }
         }
         
-        // --- NEW: Firebase Initialization ---
+        // --- Firebase Initialization ---
         async function initFirebase() {
             try {
                 // These global variables are provided by the environment
@@ -246,14 +213,12 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                // NEW: Enable debug logging
                 setLogLevel('Debug');
                 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         console.log("User is signed in:", user.uid);
                         userId = user.uid;
-                        // User is ready, load the leaderboard
                         loadLeaderboard();
                     } else {
                         console.log("User is signed out.");
@@ -261,7 +226,6 @@
                     }
                 });
 
-                // Sign in
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -273,7 +237,7 @@
             }
         }
 
-        // --- NEW: Load Leaderboard Data ---
+        // --- Load Leaderboard Data ---
         function loadLeaderboard() {
             if (!db) {
                 console.log("Leaderboard load skipped: DB not ready.");
@@ -289,7 +253,6 @@
                     scores.push(doc.data());
                 });
 
-                // Sort and filter in memory
                 const sortedScores = scores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, 10);
@@ -300,7 +263,7 @@
             });
         }
 
-        // --- NEW: Display Leaderboard ---
+        // --- Display Leaderboard ---
         function displayLeaderboard(scores) {
             leaderboardList.innerHTML = ''; // Clear old list
             if (scores.length === 0) {
@@ -318,11 +281,10 @@
             });
         }
 
-        // --- NEW: Submit Score ---
+        // --- Submit Score ---
         async function submitScore() {
             const playerName = playerNameInput.value.trim();
             if (!playerName) {
-                // We won't use alert()
                 playerNameInput.placeholder = "Please enter your name!";
                 playerNameInput.classList.add('border-red-500');
                 setTimeout(() => {
@@ -345,7 +307,6 @@
                 });
                 
                 console.log("Score submitted!");
-                // MODIFIED: Disable form instead of hiding it
                 playerNameInput.disabled = true;
                 submitScoreBtn.disabled = true;
                 submitScoreBtn.textContent = 'Submitted!';
@@ -404,7 +365,6 @@
                 player.y = size - player.height - 10;
             }
             
-            // --- NEW: Re-init stars on resize ---
             initStars(size);
 
             if (!isGameOver) {
@@ -488,7 +448,6 @@
             if (moveLeft) player.x -= player.speed;
             if (moveRight) player.x += player.speed;
             
-            // --- NEW: Emit thruster particles ---
             if(moveLeft || moveRight) {
                 emitThrusterParticles();
             }
@@ -590,18 +549,15 @@
                         shieldTimer = SHIELD_DURATION;
                         obstacles.splice(i, 1);
                         playSound('shield');
-                        // --- NEW: Emit shield particles ---
                         emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
                             playSound('hit');
-                            // --- NEW: Emit shield hit particles ---
                             emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 30, '#FF00FF');
                         } else {
                             lives--;
                             playSound(obs.type === 'bomb' ? 'gameover' : 'hit');
-                            // --- NEW: Emit player hit particles ---
                             emitParticles(player.x + player.width / 2, player.y + player.height / 2, 40, '#FF4500');
                             
                             obstacles.splice(i, 1);
@@ -622,6 +578,7 @@
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
             playSound('gameover');
+            sounds.music.pause(); // MODIFIED: Stop music
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
@@ -629,22 +586,20 @@
                 modalImage.src = octopusImageFilename;
                 modalImage.classList.remove('hidden');
             }
-            // MODIFIED: Show submit form AND restart button
             submitScoreForm.classList.remove('hidden');
             restartButton.classList.remove('hidden');
-            restartButton.textContent = 'Play Again'; // Set text
+            restartButton.textContent = 'Play Again';
             
             modalBackdrop.classList.remove('hidden');
         }
 
         // Start/restart game
         function initGame() {
-            // resizeCanvas(); // Already called by listener, but good to ensure
             const size = canvas.parentElement.clientWidth;
-            initStars(size); // Re-init stars
+            initStars(size);
             player = createPlayer();
             obstacles = [];
-            particles = []; // Clear particles
+            particles = [];
             score = 0;
             lives = 3;
             gameSpeed = 1.0;
@@ -657,45 +612,40 @@
             modalBackdrop.classList.add('hidden');
             modalImage.classList.add('hidden');
             
-            // NEW: Reset submit form for next game
             playerNameInput.disabled = false;
-            playerNameInput.value = ''; // Clear name
+            playerNameInput.value = '';
             submitScoreBtn.disabled = false;
             submitScoreBtn.textContent = 'Submit Score';
             submitScoreBtn.classList.add('bg-green-500');
             submitScoreBtn.classList.remove('bg-gray-500');
-            submitScoreForm.classList.add('hidden'); // Hide it until next game over
+            submitScoreForm.classList.add('hidden');
+            
+            // MODIFIED: Start music on game start
+            playSound('music');
             
             gameLoop();
         }
         
-        // --- NEW: Particle Functions ---
+        // --- Particle Functions ---
         function emitParticles(x, y, count, color) {
             for (let i = 0; i < count; i++) {
                 particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 4, // Random horizontal velocity
-                    vy: (Math.random() - 0.5) * 4, // Random vertical velocity
-                    size: Math.random() * 3 + 1,
-                    color: color,
-                    life: Math.random() * 60 + 30 // Life in frames
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    size: Math.random() * 3 + 1, color: color,
+                    life: Math.random() * 60 + 30
                 });
             }
         }
 
         function emitThrusterParticles() {
             if (!player) return;
-            const size = canvas.parentElement.clientWidth;
-            // Add 1-2 particles
             for (let i = 0; i < 2; i++) {
                 particles.push({
                     x: player.x + player.width / 2 + (Math.random() - 0.5) * (player.width * 0.5),
                     y: player.y + player.height,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: Math.random() * 2 + 1.5, // Move downwards
-                    size: Math.random() * 2 + 1,
-                    color: '#FF4500', // Orange
+                    vx: (Math.random() - 0.5) * 0.5, vy: Math.random() * 2 + 1.5,
+                    size: Math.random() * 2 + 1, color: '#FF4500',
                     life: Math.random() * 30 + 20
                 });
             }
@@ -712,7 +662,7 @@
                     particles.splice(i, 1);
                 } else {
                     ctx.save();
-                    ctx.globalAlpha = p.life / 60; // Fade out
+                    ctx.globalAlpha = p.life / 60;
                     ctx.fillStyle = p.color;
                     ctx.fillRect(p.x, p.y, p.size, p.size);
                     ctx.restore();
@@ -720,18 +670,16 @@
             }
         }
 
-        // --- NEW: Starfield Functions ---
+        // --- Starfield Functions ---
         function createStar(size) {
             return {
-                x: Math.random() * size,
-                y: Math.random() * size,
-                size: Math.random() * 2 + 1,
-                speed: Math.random() * 0.5 + 0.2 // Slow speeds for parallax
+                x: Math.random() * size, y: Math.random() * size,
+                size: Math.random() * 2 + 1, speed: Math.random() * 0.5 + 0.2
             };
         }
 
         function initStars(size) {
-            stars = []; // Clear stars
+            stars = [];
             for (let i = 0; i < 100; i++) {
                 stars.push(createStar(size));
             }
@@ -763,14 +711,11 @@
 
             const size = canvas.parentElement.clientWidth;
             
-            // --- MODIFIED: Draw Background ---
             ctx.fillStyle = '#1A0A2A';
             ctx.fillRect(0, 0, size, size);
             
-            // --- NEW: Draw Stars ---
             updateAndDrawStars(size);
             
-            // --- Draw Logo ---
             if (logoImageLoaded) {
                 ctx.save();
                 ctx.globalAlpha = 0.1;
@@ -779,10 +724,7 @@
                 ctx.restore();
             }
             
-            // --- NEW: Draw Particles (under player) ---
             updateAndDrawParticles();
-
-            // --- Draw Game Objects ---
             updatePlayer();
             drawPlayer();
             updateAndDrawObstacles();
@@ -805,8 +747,6 @@
         // --- Initial Game Start ---
         function main() {
             try {
-                // --- MODIFICATION ---
-                // Try to show the modal FIRST. This is the most important part.
                 modalTitle.textContent = 'Space Dodger';
                 modalScore.textContent = 'Dodge the meteors!';
                 restartButton.textContent = 'Start Game';
@@ -814,15 +754,12 @@
                 restartButton.classList.remove('hidden');
                 modalBackdrop.classList.remove('hidden');
                 modalImage.classList.add('hidden');
-                // --- END MODIFICATION ---
 
-                // Now, load everything else in the background.
                 loadAllImages();
-                initFirebase(); // NEW
+                initFirebase();
                 
             } catch (error) {
                 console.error("Error in main() function:", error);
-                // As a fallback, try to show the modal anyway
                 const modal = document.getElementById('modalBackdrop');
                 if (modal) {
                     modal.classList.remove('hidden');
@@ -832,7 +769,7 @@
             }
         }
         
-        // --- NEW: Main Startup Function ---
+        // --- Main Startup Function ---
         function onDomReady() {
             // --- Assign all DOM elements ---
             canvas = document.getElementById('gameCanvas');
@@ -865,15 +802,7 @@
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
             restartButton.addEventListener('click', () => {
-                if (!soundInitialized) {
-                    Tone.start();
-                    initSounds();
-                }
-                // --- NEW: Start music ---
-                if (Tone.Transport.state !== 'started') {
-                    Tone.Transport.start();
-                    musicLoop.start(0); // Start the loop
-                }
+                // MODIFIED: No Tone.js logic
                 initGame();
             });
 
@@ -881,16 +810,15 @@
             window.addEventListener('resize', resizeCanvas);
 
             // --- Run the main startup logic ---
-            resizeCanvas(); // Set initial size
-            initStars(canvas.parentElement.clientWidth); // Init stars
+            resizeCanvas();
+            initStars(canvas.parentElement.clientWidth);
             main(); 
         }
 
-        // --- NEW: Wait for DOM to be ready before running setup ---
+        // --- Wait for DOM to be ready before running setup ---
         window.addEventListener('DOMContentLoaded', onDomReady);
         
     </script>
 </body>
 </html>
-
 
