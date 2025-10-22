@@ -103,7 +103,11 @@
         
         // Difficulty timers
         let obstacleSpawnTimer = 0;
-        let obstacleSpawnInterval = 70; // Start with slow spawn rate
+        let obstacleSpawnInterval = 100; // Start with slower spawn rate (was 70)
+
+        // Shield timer
+        let shieldTimer = 0;
+        const SHIELD_DURATION = 300; // 300 frames = 5 seconds at 60fps
 
         // Player movement state
         let moveLeft = false;
@@ -166,12 +170,35 @@
                 width: playerSize,
                 height: playerSize,
                 speed: canvas.width * 0.015, // Responsive speed
-                dx: 0 // Horizontal velocity
+                dx: 0, // Horizontal velocity
+                isShielded: false
             };
         }
 
         // Draw the player (Image or Fallback)
         function drawPlayer() {
+            // --- NEW: Draw Shield if active ---
+            if (player.isShielded) {
+                ctx.save();
+                const centerX = player.x + player.width / 2;
+                const centerY = player.y + player.height / 2;
+                const radius = player.width * 0.7; // Shield radius
+                
+                // Create a pulsing effect
+                const pulse = Math.abs(Math.sin(Date.now() * 0.01));
+                
+                ctx.fillStyle = `rgba(0, 180, 255, ${0.2 + pulse * 0.2})`; // Pulsing fill
+                ctx.strokeStyle = `rgba(0, 200, 255, ${0.6 + pulse * 0.3})`; // Pulsing border
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            // --- END NEW ---
+
             // --- MODIFIED: Draw Image ---
             if (playerImageLoaded) {
                 // --- REVERTED: Draw the image normally, without rotation ---
@@ -207,17 +234,79 @@
             }
         }
 
-        // Create a new obstacle (meteor)
-        function createObstacle() {
+        // Create a new falling object (meteor, bomb, or booster)
+        function createFallingObject() {
             const size = Math.random() * (canvas.width * 0.08) + (canvas.width * 0.03); // Random size
+            let objectType = 'meteor'; // Default type
+            let baseSpeed = gameSpeed;
+
+            const rand = Math.random();
+            if (rand < 0.05 && score > 200) { // 5% chance for a booster (after 200 points)
+                objectType = 'booster';
+                baseSpeed = gameSpeed * 1.2; // Boosters fall a little faster
+            } else if (rand < 0.15 && score > 100) { // 10% chance for a bomb (after 100 points)
+                objectType = 'bomb';
+                baseSpeed = gameSpeed * 1.1; // Bombs fall a little faster
+            }
+            // 85% chance for a meteor
+
             obstacles.push({
                 x: Math.random() * (canvas.width - size), // Random x position
                 y: -size, // Start above the screen
                 width: size,
                 height: size,
-                speed: Math.random() * 2 + gameSpeed // Random speed based on game speed
+                speed: Math.random() * 2 + baseSpeed, // Random speed
+                type: objectType // 'meteor', 'bomb', or 'booster'
             });
         }
+
+        // --- NEW: Function to draw a Bomb ---
+        function drawBomb(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius;
+            const centerY = y + radius;
+
+            // Black outer shell
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#111'; // Very dark grey / black
+            ctx.shadowColor = '#FF4500'; // Red-orange glow
+            ctx.shadowBlur = 15;
+            ctx.fill();
+
+            // Red glowing core
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.4, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FF4500'; // Red-orange
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // --- NEW: Function to draw a Booster ---
+        function drawBooster(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius;
+            const centerY = y + radius;
+
+            // Glowing blue orb
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            
+            // Create a radial gradient for a glow effect
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(200, 230, 255, 1)'); // Bright center
+            gradient.addColorStop(0.5, 'rgba(0, 180, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 150, 255, 0)'); // Fades out
+            
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = '#00BFFF'; // DeepSkyBlue
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
 
         // Function to draw a meteor
         function drawMeteor(x, y, radius) {
@@ -260,8 +349,15 @@
                 let obs = obstacles[i];
                 obs.y += obs.speed; // Move obstacle down
 
-                // Draw the obstacle as a meteor
-                drawMeteor(obs.x, obs.y, obs.width / 2);
+                // Draw the object based on its type
+                if (obs.type === 'meteor') {
+                    drawMeteor(obs.x, obs.y, obs.width / 2);
+                } else if (obs.type === 'bomb') {
+                    drawBomb(obs.x, obs.y, obs.width / 2);
+                } else if (obs.type === 'booster') {
+                    drawBooster(obs.x, obs.y, obs.width / 2);
+                }
+
 
                 // Remove obstacle if it's off-screen
                 if (obs.y > canvas.height) {
@@ -280,10 +376,12 @@
 
         // Check for collisions between player and obstacles
         function checkCollisions() {
-            for (let obs of obstacles) {
+            // Use a reverse loop so we can safely remove items
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+
                 // Simple AABB (Axis-Aligned Bounding Box) collision detection
-                // Add a small buffer/padding (e.g., 10px or player.width * 0.1) to make it more forgiving
-                const padding = player.width * 0.15; // 15% padding on each side
+                const padding = player.width * 0.15; // 15% padding
                 
                 if (
                     player.x < obs.x + obs.width - padding &&
@@ -291,9 +389,26 @@
                     player.y < obs.y + obs.height - padding &&
                     player.y + player.height > obs.y + padding
                 ) {
-                    // Collision detected
-                    gameOver();
-                    break;
+                    // Collision detected!
+                    
+                    if (obs.type === 'booster') {
+                        // Collected a booster!
+                        player.isShielded = true;
+                        shieldTimer = SHIELD_DURATION;
+                        obstacles.splice(i, 1); // Remove the booster
+                    
+                    } else if (obs.type === 'meteor' || obs.type === 'bomb') {
+                        // Hit a meteor or bomb
+                        if (player.isShielded) {
+                            // Shield protected the player!
+                            obstacles.splice(i, 1); // Destroy the obstacle
+                            // Optional: Add a "shield hit" sound or visual
+                        } else {
+                            // No shield, game over
+                            gameOver();
+                            break; // Exit the loop
+                        }
+                    }
                 }
             }
         }
@@ -321,7 +436,8 @@
             gameSpeed = 1.0; // Reset base speed
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 70; // Reset spawn rate
+            obstacleSpawnInterval = 100; // Reset spawn rate (was 70)
+            shieldTimer = 0; // Reset shield timer
             
             // Reset UI
             scoreEl.textContent = '0';
@@ -334,6 +450,15 @@
         // --- Main Game Loop ---
         function gameLoop() {
             if (isGameOver) return;
+
+            // --- NEW: Shield Timer Countdown ---
+            if (player.isShielded) {
+                shieldTimer--;
+                if (shieldTimer <= 0) {
+                    player.isShielded = false;
+                }
+            }
+            // --- END NEW ---
 
             // Clear the canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -350,14 +475,15 @@
             obstacleSpawnTimer++;
 
             if (score < 500) {
-                obstacleSpawnInterval = 70; // Constant slow spawn rate
+                obstacleSpawnInterval = 100; // Constant slow spawn rate (was 70)
             } else {
-                // After 500, make obstacles spawn faster as game speed increases
-                obstacleSpawnInterval = Math.max(20, 70 - (gameSpeed - 1.0) * 10);
+                // After 500, make obstacles spawn faster
+                // Start from 100, go down to a max of 30
+                obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
             }
             
             if (obstacleSpawnTimer >= obstacleSpawnInterval) {
-                createObstacle();
+                createFallingObject(); // Renamed from createObstacle()
                 obstacleSpawnTimer = 0;
             }
 
@@ -411,6 +537,7 @@
     </script>
 </body>
 </html>
+
 
 
 
