@@ -144,7 +144,7 @@
             if (player) {
                 const oldWidth = player.width;
                 const oldHeight = player.height;
-                player.width = canvas.width * 0.1; // 10% of canvas width
+                player.width = canvas.width * 0.15; // 15% of canvas width (was 0.1)
                 player.height = player.width; // Keep it square
                 player.speed = canvas.width * 0.015; // Responsive speed
                 // Adjust position based on new size
@@ -163,7 +163,7 @@
 
         // Create the player object
         function createPlayer() {
-            const playerSize = canvas.width * 0.1; // 10% of canvas width
+            const playerSize = canvas.width * 0.15; // 15% of canvas width (was 0.1)
             return {
                 x: canvas.width / 2 - playerSize / 2,
                 y: canvas.height - playerSize - 10,
@@ -537,6 +537,7 @@
     </script>
 </body>
 </html>
+
 
 
 
