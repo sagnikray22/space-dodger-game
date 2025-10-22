@@ -134,28 +134,45 @@
         function resizeCanvas() {
             // Get the container's size
             const container = canvas.parentElement;
-            const size = container.clientWidth;
+            const size = container.clientWidth; // CSS pixel size
             
-            // Set canvas internal resolution
-            canvas.width = size;
-            canvas.height = size;
+            // --- NEW: High DPI Scaling ---
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Set canvas internal resolution to match physical pixels
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+
+            // Set the CSS display size (this doesn't change)
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            
+            // Scale the context so we can use CSS pixels for drawing
+            ctx.scale(dpr, dpr);
+            // --- END NEW ---
 
             // Update player size/position (if player exists)
             if (player) {
-                const oldWidth = player.width;
-                const oldHeight = player.height;
-                player.width = canvas.width * 0.15; // 15% of canvas width (was 0.1)
+                // Get the old *CSS size* of the canvas, which player.width was based on
+                const oldSize = player.width / 0.15; 
+        
+                // Get new proportional x position
+                const oldXRatio = player.x / oldSize;
+                
+                // Set new size based on new CSS size
+                player.width = size * 0.15; // 15% of CSS canvas width
                 player.height = player.width; // Keep it square
-                player.speed = canvas.width * 0.015; // Responsive speed
-                // Adjust position based on new size
-                player.x = player.x * (canvas.width / oldWidth);
-                player.y = canvas.height - player.height - 10;
+                player.speed = size * 0.015; // Responsive speed
+                
+                // Set new position
+                player.x = oldXRatio * size;
+                player.y = size - player.height - 10;
             }
             
             // Redraw if game is running
             if (!isGameOver) {
                 // Clear and redraw all elements (or just player)
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, size, size); // Use CSS size
                 if(player) drawPlayer();
                 updateAndDrawObstacles(); // Redraw existing obstacles
             }
@@ -163,13 +180,14 @@
 
         // Create the player object
         function createPlayer() {
-            const playerSize = canvas.width * 0.15; // 15% of canvas width (was 0.1)
+            const size = canvas.parentElement.clientWidth; // Get CSS size
+            const playerSize = size * 0.15; // 15% of CSS canvas width
             return {
-                x: canvas.width / 2 - playerSize / 2,
-                y: canvas.height - playerSize - 10,
+                x: size / 2 - playerSize / 2,
+                y: size - playerSize - 10,
                 width: playerSize,
                 height: playerSize,
-                speed: canvas.width * 0.015, // Responsive speed
+                speed: size * 0.015, // Responsive speed
                 dx: 0, // Horizontal velocity
                 isShielded: false
             };
@@ -226,17 +244,19 @@
             }
 
             // Keep player within canvas bounds
+            const size = canvas.parentElement.clientWidth; // Get CSS size
             if (player.x < 0) {
                 player.x = 0;
             }
-            if (player.x + player.width > canvas.width) {
-                player.x = canvas.width - player.width;
+            if (player.x + player.width > size) {
+                player.x = size - player.width;
             }
         }
 
         // Create a new falling object (meteor, bomb, or booster)
         function createFallingObject() {
-            const size = Math.random() * (canvas.width * 0.08) + (canvas.width * 0.03); // Random size
+            const size = canvas.parentElement.clientWidth; // Get CSS size
+            const objectSize = Math.random() * (size * 0.08) + (size * 0.03); // Random size
             let objectType = 'meteor'; // Default type
             let baseSpeed = gameSpeed;
 
@@ -251,10 +271,10 @@
             // 85% chance for a meteor
 
             obstacles.push({
-                x: Math.random() * (canvas.width - size), // Random x position
-                y: -size, // Start above the screen
-                width: size,
-                height: size,
+                x: Math.random() * (size - objectSize), // Random x position
+                y: -objectSize, // Start above the screen
+                width: objectSize,
+                height: objectSize,
                 speed: Math.random() * 2 + baseSpeed, // Random speed
                 type: objectType // 'meteor', 'bomb', or 'booster'
             });
@@ -345,6 +365,7 @@
 
         // Update and draw all obstacles
         function updateAndDrawObstacles() {
+            const size = canvas.parentElement.clientWidth; // Get CSS size
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += obs.speed; // Move obstacle down
@@ -360,7 +381,7 @@
 
 
                 // Remove obstacle if it's off-screen
-                if (obs.y > canvas.height) {
+                if (obs.y > size) { // Use CSS size
                     obstacles.splice(i, 1);
                     score += 10; // Add to score for dodging
                     scoreEl.textContent = score;
@@ -461,7 +482,8 @@
             // --- END NEW ---
 
             // Clear the canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const size = canvas.parentElement.clientWidth; // Get CSS size
+            ctx.clearRect(0, 0, size, size); // Use CSS size
 
             // Update and draw game elements
             updatePlayer();
@@ -537,6 +559,7 @@
     </script>
 </body>
 </html>
+
 
 
 
