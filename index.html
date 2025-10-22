@@ -721,7 +721,7 @@
             gameSpeed = 1.0;
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 100;
+            obstacleSpawnInterval = 80; // MODIFIED: Start with a faster spawn rate (was 100)
             shieldTimer = 0;
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
@@ -864,8 +864,15 @@
                 checkCollisions();
 
                 obstacleSpawnTimer++;
-                if (score < 500) obstacleSpawnInterval = 100;
-                else obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
+                
+                // --- MODIFICATION: Make spawn rate increase from the START ---
+                // Gradually decrease spawn time from the beginning
+                const progress = Math.min(1, score / 500); // 0.0 -> 1.0 as score goes 0 -> 500
+                const baseInterval = 80; // Starting interval (was 100)
+                const minInterval = 30; // Max spawn rate
+                const reduction = (baseInterval - minInterval) * progress; // How much to reduce by
+                obstacleSpawnInterval = Math.max(minInterval, baseInterval - reduction);
+                // --- END MODIFICATION ---
                 
                 if (obstacleSpawnTimer >= obstacleSpawnInterval) {
                     createFallingObject();
@@ -986,4 +993,5 @@
     </script>
 </body>
 </html>
+
 
