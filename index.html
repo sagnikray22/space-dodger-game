@@ -821,7 +821,11 @@
                         console.log("AudioContext started!");
                         initSounds();
                         initGame();
-                    }).catch(e => console.error("Tone.start() failed:", e));
+                    }).catch(e => {
+                        console.error("Tone.start() failed (sound effects may not work):", e);
+                        // --- FIX: Start the game anyway, just without sound effects ---
+                        initGame(); 
+                    });
                 } else {
                     initGame();
                 }
@@ -843,6 +847,7 @@
     </script>
 </body>
 </html>
+
 
 
 
