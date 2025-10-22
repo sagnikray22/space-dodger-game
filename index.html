@@ -40,7 +40,8 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+<!-- MODIFIED: Changed p-4 to pt-4 and removed justify-center -->
+<body class="bg-gray-900 text-white flex flex-col items-center min-h-screen pt-4">
 
     <!-- Game Title -->
     <h1 class="text-3xl md:text-4xl font-bold text-cyan-300 mb-4">Space Dodger</h1>
@@ -51,13 +52,14 @@
     </div>
 
     <!-- Game Canvas -->
-    <!-- MODIFIED: Removed "max-w-lg" to allow it to be full-width on mobile -->
-    <div class="w-full md:max-w-2xl aspect-square rounded-lg shadow-2xl overflow-hidden border-2 border-cyan-400">
+    <!-- MODIFIED: Made canvas larger on all screens -->
+    <div class="w-full md:max-w-3xl lg:max-w-4xl aspect-square rounded-lg shadow-2xl overflow-hidden border-2 border-cyan-400">
         <canvas id="gameCanvas"></canvas>
     </div>
 
     <!-- Mobile Touch Controls -->
-    <div class="md:hidden w-full max-w-lg mt-4 grid grid-cols-2 gap-4">
+    <!-- MODIFIED: Added px-4 and pb-4 for spacing -->
+    <div class="md:hidden w-full max-w-lg mt-4 grid grid-cols-2 gap-4 px-4 pb-4">
         <button id="moveLeftBtn" class="bg-cyan-600 active:bg-cyan-700 text-white font-bold py-4 rounded-lg shadow-lg text-xl">
             &larr; Left
         </button>
@@ -559,6 +561,7 @@
     </script>
 </body>
 </html>
+
 
 
 
