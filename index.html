@@ -99,6 +99,17 @@
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
 
+    <!-- NEW: Hidden YouTube Player for Cat Videos -->
+    <iframe id="catVideoPlayer"
+        class="hidden z-50 absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300"
+        width="320" 
+        height="180" 
+        src="" 
+        frameborder="0" 
+        allow="autoplay; encrypted-media" 
+        allowfullscreen>
+    </iframe>
+
     <!-- Game Canvas Container -->
     <!-- MODIFIED: This container will define the game size -->
     <div id="game-container" class="w-full flex-1 rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
@@ -170,6 +181,16 @@
         let shieldTimer = 0;
         const SHIELD_DURATION = 300; // 5 seconds
         let moveLeft = false, moveRight = false;
+        let catVideoTimeout; // NEW: To hide the video player
+
+        // --- NEW: Add your YouTube video IDs here! ---
+        const catVideoIds = [
+            "SWkMYO9V_-k", // Your first video
+            "vmdrwYv29ZA", // Your second video
+            "L8XbI9aJOXk", // Your third video
+            "IbQgLERakws"  // Your fourth video
+            // Add more of your unlisted YouTube video IDs here, separated by commas
+        ];
         
         // --- AAA Feature Variables ---
         let particles = [];
@@ -193,7 +214,8 @@
             music: new Audio('music.mp3'), // Your music file
             shield: null, 
             hit: null,    
-            gameover: null 
+            gameover: null,
+            fanfare: null // NEW: Fun sound for game over
         };
         sounds.music.loop = true;
         sounds.music.volume = 0.05; // 5% volume
@@ -211,6 +233,13 @@
             sounds.hit.volume.value = -10;
             sounds.gameover = new Tone.MonoSynth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.5 } }).toDestination();
             sounds.gameover.volume.value = -5;
+            
+            // NEW: Fanfare sound
+            sounds.fanfare = new Tone.PolySynth(Tone.Synth, {
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }
+            }).toDestination();
+            sounds.fanfare.volume.value = -5;
+            
             console.log("Sound effects initialized");
             soundInitialized = true;
         }
@@ -225,6 +254,14 @@
             else if (sound === 'shield' && sounds.shield) sounds.shield.triggerAttackRelease("C5", "8n");
             else if (sound === 'hit' && sounds.hit) sounds.hit.triggerAttackRelease("16n");
             else if (sound === 'gameover' && sounds.gameover) sounds.gameover.triggerAttackRelease("C3", "2n");
+            // NEW: Play fanfare
+            else if (sound === 'fanfare' && sounds.fanfare) {
+                const now = Tone.now();
+                sounds.fanfare.triggerAttackRelease("C4", "8n", now);
+                sounds.fanfare.triggerAttackRelease("E4", "8n", now + 0.1);
+                sounds.fanfare.triggerAttackRelease("G4", "8n", now + 0.2);
+                sounds.fanfare.triggerAttackRelease("C5", "4n", now + 0.3);
+            }
         }
         
         // --- Firebase Initialization ---
@@ -258,6 +295,32 @@
                 }
             } catch (error) {
                 console.error("Firebase Init Error:", error);
+            }
+        }
+
+        // --- NEW: Function to play a random cat video ---
+        function playRandomCatVideo() {
+            try {
+                // Clear any previous video timeout
+                if (catVideoTimeout) clearTimeout(catVideoTimeout);
+
+                const videoPlayer = document.getElementById('catVideoPlayer');
+                const randomId = catVideoIds[Math.floor(Math.random() * catVideoIds.length)];
+                
+                // Set the video source to autoplay (MUST be muted)
+                videoPlayer.src = `https://www.youtube.com/embed/${randomId}?autoplay=1&mute=1&controls=0`;
+                
+                // Show the player
+                videoPlayer.classList.remove('hidden');
+
+                // Set a timer to hide the player after 10 seconds
+                catVideoTimeout = setTimeout(() => {
+                    videoPlayer.classList.add('hidden');
+                    videoPlayer.src = ''; // Stop the video
+                }, 10000); // 10 seconds
+
+            } catch(e) {
+                console.error("Could not play cat video:", e);
             }
         }
 
@@ -526,7 +589,6 @@
                 let obs = obstacles[i];
                 obs.y += obs.speed;
                 if (obs.type === 'meteor') {
-                    // MODIFIED: Fixed typo obs.Y -> obs.y
                     if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
                     else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
                 } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
@@ -568,19 +630,27 @@
                             if (lives <= 0) {
                                 gameOver();
                                 break;
-                            } else player.invincibilityTimer = 240;
+                            } else {
+                                player.invincibilityTimer = 240;
+                                playRandomCatVideo(); // --- NEW: Play video on losing a life ---
+                            }
                         }
                     }
                 }
             }
         }
 
-        // MODIFIED: Game over (to show leaderboard)
+        // MODIFIED: Game over (to show leaderboard & confetti)
         function gameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
-            playSound('gameover');
-            sounds.music.pause();
+            
+            // NEW: Hide cat video on Game Over
+            const videoPlayer = document.getElementById('catVideoPlayer');
+            videoPlayer.classList.add('hidden');
+            videoPlayer.src = '';
+            if (catVideoTimeout) clearTimeout(catVideoTimeout);
+            
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
             if (octopusImageLoaded) {
@@ -601,7 +671,7 @@
             initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
-            particles = [];
+            particles = []; // Clear confetti
             score = 0;
             lives = 3;
             gameSpeed = 1.0;
@@ -620,6 +690,13 @@
             submitScoreBtn.classList.remove('bg-gray-500');
             submitScoreForm.classList.add('hidden');
             leaderboardModalContainer.classList.add('hidden'); // NEW: Hide leaderboard
+            
+            // NEW: Hide cat video on Restart
+            const videoPlayer = document.getElementById('catVideoPlayer');
+            videoPlayer.classList.add('hidden');
+            videoPlayer.src = '';
+            if (catVideoTimeout) clearTimeout(catVideoTimeout);
+            
             playSound('music');
             gameLoop();
         }
@@ -647,14 +724,48 @@
                 });
             }
         }
+
+        // --- NEW: Confetti Particle Emitter ---
+        function emitConfetti(width, height) {
+            const confettiColors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#277da1', '#ffffff'];
+            for (let i = 0; i < 200; i++) { // 200 particles
+                particles.push({
+                    type: 'confetti',
+                    x: width / 2, // Start at center
+                    y: height / 2,
+                    vx: (Math.random() - 0.5) * 15, // Explode horizontally
+                    vy: (Math.random() - 0.5) * 20 - 5, // Explode upwards
+                    size: Math.random() * 5 + 3,
+                    color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+                    life: 200 + Math.random() * 100 // Long life
+                });
+            }
+        }
+
+        // --- MODIFIED: Particle Physics ---
         function updateAndDrawParticles() {
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.life--;
-                if (p.life <= 0) particles.splice(i, 1);
-                else {
+                p.x += p.vx; 
+                p.y += p.vy; 
+                p.life--;
+
+                // NEW: Add gravity and drag to confetti
+                if (p.type === 'confetti') {
+                    p.vy += 0.1; // Gravity
+                    p.vx *= 0.99; // Air drag
+                }
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
                     ctx.save();
-                    ctx.globalAlpha = p.life / 60;
+                    // Fade out regular particles, but not confetti (it fades by falling off screen)
+                    if (p.type !== 'confetti') {
+                        ctx.globalAlpha = p.life / 60;
+                    } else {
+                        ctx.globalAlpha = p.life / (200 + Math.random() * 100);
+                    }
                     ctx.fillStyle = p.color;
                     ctx.fillRect(p.x, p.y, p.size, p.size);
                     ctx.restore();
@@ -691,12 +802,28 @@
 
         // --- MODIFIED: Main game loop (for non-square) ---
         function gameLoop() {
-            if (isGameOver) return;
-            if (player.isShielded) {
-                shieldTimer--;
-                if (shieldTimer <= 0) player.isShielded = false;
+            // MODIFIED: Only run game logic if not game over
+            // This allows confetti to keep rendering *after* game over
+            if (!isGameOver) { 
+                if (player.isShielded) {
+                    shieldTimer--;
+                    if (shieldTimer <= 0) player.isShielded = false;
+                }
+                if (player.invincibilityTimer > 0) player.invincibilityTimer--;
+
+                updatePlayer();
+                updateAndDrawObstacles();
+                checkCollisions();
+
+                obstacleSpawnTimer++;
+                if (score < 500) obstacleSpawnInterval = 100;
+                else obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
+                
+                if (obstacleSpawnTimer >= obstacleSpawnInterval) {
+                    createFallingObject();
+                    obstacleSpawnTimer = 0;
+                }
             }
-            if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
             const cssWidth = canvas.clientWidth;
             const cssHeight = canvas.clientHeight;
@@ -713,21 +840,13 @@
                 ctx.restore();
             }
             
-            updateAndDrawParticles();
-            updatePlayer();
-            drawPlayer();
-            updateAndDrawObstacles();
-            checkCollisions();
-            drawUI();
+            updateAndDrawParticles(); // Draw particles (confetti, thrusters, etc)
 
-            obstacleSpawnTimer++;
-            if (score < 500) obstacleSpawnInterval = 100;
-            else obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
-            
-            if (obstacleSpawnTimer >= obstacleSpawnInterval) {
-                createFallingObject();
-                obstacleSpawnTimer = 0;
+            if (!isGameOver) {
+                drawPlayer();
+                drawUI();
             }
+
             animationFrameId = requestAnimationFrame(gameLoop);
         }
         
@@ -816,5 +935,6 @@
     </script>
 </body>
 </html>
+
 
 
