@@ -144,25 +144,11 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Canvas & Context Setup ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // --- DOM Elements ---
-        const scoreEl = document.getElementById('score');
-        const modalBackdrop = document.getElementById('modalBackdrop');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalScore = document.getElementById('modalScore');
-        const restartButton = document.getElementById('restartButton');
-        const modalImage = document.getElementById('modalImage');
-        const leaderboardList = document.getElementById('leaderboardList');
-        const submitScoreForm = document.getElementById('submitScoreForm');
-        const playerNameInput = document.getElementById('playerNameInput');
-        const submitScoreBtn = document.getElementById('submitScoreBtn');
-        
-        // --- Mobile Controls ---
-        const moveLeftBtn = document.getElementById('moveLeftBtn');
-        const moveRightBtn = document.getElementById('moveRightBtn');
+        // --- MODIFIED: Declare variables, assign them after DOM loads ---
+        let canvas, ctx;
+        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, modalImage;
+        let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
+        let moveLeftBtn, moveRightBtn;
 
         // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
@@ -314,7 +300,13 @@
         async function submitScore() {
             const playerName = playerNameInput.value.trim();
             if (!playerName) {
-                alert("Please enter your name!");
+                // We won't use alert()
+                playerNameInput.placeholder = "Please enter your name!";
+                playerNameInput.classList.add('border-red-500');
+                setTimeout(() => {
+                   playerNameInput.classList.remove('border-red-500');
+                   playerNameInput.placeholder = "Enter your name";
+                }, 2000);
                 return;
             }
             if (!db || !userId) {
@@ -325,7 +317,9 @@
             try {
                 const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
                 await addDoc(leaderboardCol, {
-<!-- ... existing code ...
+                    name: playerName,
+                    score: score,
+                    timestamp: new Date()
                 });
                 
                 console.log("Score submitted!");
@@ -672,35 +666,6 @@
             animationFrameId = requestAnimationFrame(gameLoop);
         }
         
-        // --- Event Handlers ---
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
-        });
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
-        });
-        moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; }, { passive: false });
-        moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
-        moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
-        moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
-
-        // MODIFIED: Restart button starts game AND initializes sound
-        restartButton.addEventListener('click', () => {
-            // NEW: Initialize sounds on first click
-            if (!soundInitialized) {
-                Tone.start();
-                initSounds();
-            }
-            initGame();
-        });
-
-        // NEW: Submit score button
-        submitScoreBtn.addEventListener('click', submitScore);
-
-        window.addEventListener('resize', resizeCanvas);
-
         // --- Initial Game Start ---
         function main() {
             try {
@@ -731,12 +696,55 @@
             }
         }
         
-        main(); // Run the main setup
+        // --- NEW: Main Startup Function ---
+        function onDomReady() {
+            // --- Assign all DOM elements ---
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            scoreEl = document.getElementById('score');
+            modalBackdrop = document.getElementById('modalBackdrop');
+            modalTitle = document.getElementById('modalTitle');
+            modalScore = document.getElementById('modalScore');
+            restartButton = document.getElementById('restartButton');
+            modalImage = document.getElementById('modalImage');
+            leaderboardList = document.getElementById('leaderboardList');
+            submitScoreForm = document.getElementById('submitScoreForm');
+            playerNameInput = document.getElementById('playerNameInput');
+            submitScoreBtn = document.getElementById('submitScoreBtn');
+            moveLeftBtn = document.getElementById('moveLeftBtn');
+            moveRightBtn = document.getElementById('moveRightBtn');
+            
+            // --- Add all Event Listeners ---
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
+                if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
+            });
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
+                if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
+            });
+            moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; }, { passive: false });
+            moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
+            moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
+            moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
+            restartButton.addEventListener('click', () => {
+                if (!soundInitialized) {
+                    Tone.start();
+                    initSounds();
+                }
+                initGame();
+            });
+            submitScoreBtn.addEventListener('click', submitScore);
+            window.addEventListener('resize', resizeCanvas);
+
+            // --- Run the main startup logic ---
+            main(); 
+        }
+
+        // --- NEW: Wait for DOM to be ready before running setup ---
+        window.addEventListener('DOMContentLoaded', onDomReady);
         
     </script>
 </body>
 </html>
-
-
-
 
