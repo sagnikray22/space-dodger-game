@@ -526,7 +526,8 @@
                 let obs = obstacles[i];
                 obs.y += obs.speed;
                 if (obs.type === 'meteor') {
-                    if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.Y, obs.width, obs.height);
+                    // MODIFIED: Fixed typo obs.Y -> obs.y
+                    if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
                     else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
                 } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
                 else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
@@ -815,4 +816,5 @@
     </script>
 </body>
 </html>
+
 
