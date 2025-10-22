@@ -630,24 +630,24 @@
 
         // MODIFIED: Start/restart game
         function initGame() {
-            // --- NEW: Force resize canvas to get correct dimensions ---
-            resizeCanvas(); 
-            // --- END NEW ---
-
-            // MODIFIED: Use gameContainer
+            // --- NEW: Failsafe check for container size ---
+            resizeCanvas(); // Try to resize
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
-            
-            // 1. CLEAR THE CANVAS FIRST
-            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
-            
-            // 2. DRAW BACKGROUND STUFF
-            updateAndDrawStars(cssWidth, cssHeight);
-            
-            if (logoImageLoaded) {
-                ctx.save();
-                ctx.globalAlpha = 0.1;
-                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
+
+            if (cssWidth === 0 || cssHeight === 0) {
+                console.error(`Game container size is ${cssWidth}x${cssHeight}. Retrying in 50ms...`);
+                setTimeout(initGame, 50); // Try again shortly
+                return; // Stop execution
+            }
+            // --- END NEW ---
+
+            // If we get here, cssWidth and cssHeight are valid
+            console.log(`Game container size is ${cssWidth}x${cssHeight}. Starting game.`);
+
+            initStars(cssWidth, cssHeight);
+            player = createPlayer();
+            obstacles = [];
                 ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
                 ctx.restore();
             }
@@ -765,8 +765,7 @@
                     // If game is already running, this button is "Play Again", so just init.
                     // If this is the first start, soundInitialized will be false.
                     if (soundInitialized) {
-                        // MODIFIED: Delay initGame slightly
-                        requestAnimationFrame(initGame); // Wait for next frame
+                        initGame(); // Call directly
                         return;
                     }
 
@@ -797,22 +796,19 @@
                             .finally(() => {
                                 // Whether it succeeded, failed, or timed out, start the game.
                                 console.log("Audio init finished or timed out. Starting game.");
-                                // MODIFIED: Delay initGame slightly
-                                requestAnimationFrame(initGame); // Wait for next frame
+                                initGame(); // Call directly
                             });
                         
                     } else {
                         // Tone.js isn't loaded.
                         console.warn("Tone.js not loaded. Starting game without sound effects.");
                         soundInitialized = false;
-                        // MODIFIED: Delay initGame slightly
-                        requestAnimationFrame(initGame); // Wait for next frame
+                        initGame(); // Call directly
                     }
                     
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
-                     // MODIFIED: Delay initGame slightly
-                    requestAnimationFrame(initGame); // Failsafe: Wait for next frame
+                     initGame(); // Failsafe: Call directly
                 }
             });
             // --- END MODIFICATION ---
@@ -833,6 +829,7 @@
     </script>
 </body>
 </html>
+
 
 
 
