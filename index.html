@@ -8,8 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Load Tone.js for sound -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- MODIFIED: Removed Tone.js from here -->
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -137,11 +136,11 @@
         </div>
     </div>
 
+    <!-- MODIFIED: Moved Tone.js script here, to the end of the body -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
     <script type="module">
         // --- Firebase SDK Imports (REMOVED) ---
-        // import { initializeApp } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "httpsall://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Declare variables, assign them after DOM loads ---
         let canvas, ctx;
@@ -161,7 +160,6 @@
         let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
         let endScreenVideoTimeout; // NEW: Timer for end screen video
         let shieldVideoTimeout; // NEW: Timer for shield video
-        // let isAuthReady = false; // REMOVED
  
         // --- NEW: Add your Cat Meme filenames here! ---
         // 1. Upload your .mp4 files to GitHub
@@ -184,10 +182,8 @@
         let meteorImage = new Image(), meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
         // let octopusImage = new Image(), octopusImageLoaded = false; // REMOVED
-        // const octopusImageFilename = 'octopus.png'; // REMOVED
 
         // --- Firebase Variables (REMOVED) ---
-        // let db, auth, userId, appId;
 
         // --- Hybrid Sound System ---
         let sounds = {
@@ -322,8 +318,6 @@
             meteorImage.onload = () => meteorImageLoaded = true;
             meteorImage.onerror = () => console.error("Error loading meteor image");
             // octopusImage.src = octopusImageFilename; // REMOVED
-            // octopusImage.onload = () => octopusImageLoaded = true; // REMOVED
-            // octopusImage.onerror = () => console.error("Error loading octopus image"); // REMOVED
         }
 
 
@@ -616,15 +610,13 @@
                 }, 5000); // 5 seconds
                 // --- END NEW ---
 
-            } catch (e)
+            } catch (e) {
                 console.error("Could not load cat4.mp4", e);
             }
             
             // MODIFIED: Removed code that showed the submit form and leaderboard
-            // submitScoreForm.classList.remove('hidden'); // REMOVED
             restartButton.classList.remove('hidden');
             restartButton.textContent = 'Play Again';
-            // leaderboardModalContainer.classList.remove('hidden'); // REMOVED
             modalBackdrop.classList.remove('hidden');
         }
 
@@ -648,6 +640,152 @@
             initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
+            particles = []; // Clear confetti
+            score = 0;
+            lives = 3;
+            gameSpeed = 1.0;
+            isGameOver = false;
+            obstacleSpawnTimer = 0;
+            obstacleSpawnInterval = 80; // MODIFIED: Start with a faster spawn rate (was 100)
+            shieldTimer = 0;
+            scoreEl.textContent = '0';
+            modalBackdrop.classList.add('hidden');
+            
+            // MODIFIED: Hide end screen video
+            endScreenVideo.classList.add('hidden');
+            endScreenVideo.src = ''; // Stop it from playing
+            if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear timer
+        
+            // MODIFIED: Hide cat video on Restart
+            catMemePlayer.classList.add('hidden'); // MODIFIED
+            catMemePlayer.src = ''; // MODIFIED
+            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+
+            // NEW: Hide shield video on Restart
+            shieldVideoPlayer.classList.add('hidden');
+            shieldVideoPlayer.src = '';
+            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
+            
+            playSound('music');
+            gameLoop();
+        }
+        
+        // --- Particle Functions (unchanged) ---
+        function emitParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    size: Math.random() * 3 + 1, color: color,
+                    life: Math.random() * 60 + 30
+                });
+            }
+        }
+        function emitThrusterParticles() {
+            if (!player) return;
+            for (let i = 0; i < 2; i++) {
+                particles.push({
+                    x: player.x + player.width / 2 + (Math.random() - 0.5) * (player.width * 0.5),
+                    y: player.y + player.height,
+                    vx: (Math.random() - 0.5) * 0.5, vy: Math.random() * 2 + 1.5,
+                    size: Math.random() * 2 + 1, color: '#FF4500',
+                    life: Math.random() * 30 + 20
+                });
+            }
+        }
+
+        // --- NEW: Confetti Particle Emitter ---
+        function emitConfetti(width, height) {
+            const confettiColors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#277da1', '#ffffff'];
+            for (let i = 0; i < 200; i++) { // 200 particles
+                particles.push({
+                    type: 'confetti',
+                    x: width / 2, // Start at center
+                    y: height / 2,
+                    vx: (Math.random() - 0.5) * 15, // Explode horizontally
+                    vy: (Math.random() - 0.5) * 20 - 5, // Explode upwards
+                    size: Math.random() * 5 + 3,
+                    color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+                    life: 200 + Math.random() * 100 // Long life
+                });
+            }
+        }
+
+        // --- MODIFIED: Particle Physics ---
+        function updateAndDrawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; 
+                p.y += p.vy; 
+                p.life--;
+
+                // NEW: Add gravity and drag to confetti
+                if (p.type === 'confetti') {
+                    p.vy += 0.1; // Gravity
+                    p.vx *= 0.99; // Air drag
+                }
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    // Fade out regular particles, but not confetti (it fades by falling off screen)
+                    if (p.type !== 'confetti') {
+                        ctx.globalAlpha = p.life / 60;
+                    } else {
+                        ctx.globalAlpha = p.life / (200 + Math.random() * 100);
+                    }
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                    ctx.restore();
+                }
+            }
+        }
+
+        // --- MODIFIED: Starfield Functions (for non-square) ---
+        function createStar(width, height) {
+            return {
+                x: Math.random() * width, y: Math.random() * height,
+                size: Math.random() * 2 + 1, speed: Math.random() * 0.5 + 0.2
+            };
+        }
+        function initStars(width, height) {
+            stars = [];
+            for (let i = 0; i < 100; i++) {
+                stars.push(createStar(width, height));
+            }
+        }
+        function updateAndDrawStars(width, height) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for (let star of stars) {
+                star.y += star.speed;
+                if (star.y > height) {
+                    star.y = 0;
+                    star.x = Math.random() * width;
+                }
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            }
+            ctx.restore();
+        }
+
+        // --- *** MAJOR BUG FIX *** ---
+        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
+        function gameLoop() {
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
+            
+            // 1. CLEAR THE CANVAS FIRST
+            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
+            
+            // 2. DRAW BACKGROUND STUFF
+            updateAndDrawStars(cssWidth, cssHeight);
+            
+            if (logoImageLoaded) {
+                ctx.save();
+                ctx.globalAlpha = 0.1;
+                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
                 ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
                 ctx.restore();
             }
@@ -829,7 +967,4 @@
     </script>
 </body>
 </html>
-
-
-
 
