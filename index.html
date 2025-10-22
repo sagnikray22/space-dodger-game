@@ -95,7 +95,7 @@
     </style>
 </head>
 <!-- MODIFIED: h-screen to fill viewport -->
-<body class="text-white flex flex-col items-center h-screen pt-4 pb-8">
+<body class="text-white flex flex-col items-center h-screen pt-4 pb-12"> <!-- MODIFIED: Increased pb-8 to pb-12 -->
 
     <!-- Game Title -->
     <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Void Runner</h1> <!-- MODIFIED: New Name -->
@@ -109,22 +109,20 @@
 
     <!-- NEW: Hidden <video> for Cat Memes -->
     <video id="catMemePlayer"
-        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300"
-        width="320" 
-        height="180" 
+        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-48 h-auto" <!-- MODIFIED: Removed fixed w/h, added responsive w/h -->
         src=""
         controls 
         preload="none"
+        playsinline <!-- NEW: Prevents fullscreen on mobile -->
     ></video>
 
     <!-- NEW: Hidden <video> for Shield Power-up -->
     <video id="shieldVideoPlayer"
-        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400"
-        width="320" 
-        height="180" 
+        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-48 h-auto" <!-- MODIFIED: Removed fixed w/h, added responsive w/h -->
         src=""
         controls 
         preload="none"
+        playsinline <!-- NEW: Prevents fullscreen on mobile -->
     ></video>
 
     <!-- Game Canvas Container -->
@@ -135,7 +133,7 @@
 
     <!-- Mobile Touch Controls -->
     <!-- MODIFIED: Removed max-w-lg, added padding -->
-    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-2">
+    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-4"> <!-- MODIFIED: Increased pb-2 to pb-4 -->
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
         </button>
@@ -150,7 +148,7 @@
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
             <!-- MODIFIED: Replaced octopus img with a video player for the end screen -->
-            <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none"></video>
+            <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none" playsinline></video> <!-- NEW: Added playsinline -->
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
             <!-- MODIFIED: Removed glow from subtitle -->
             <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
@@ -1098,6 +1096,7 @@
     </script>
 </body>
 </html>
+
 
 
 
