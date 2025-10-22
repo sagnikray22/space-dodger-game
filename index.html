@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Void Runner</title> <!-- MODIFIED: New Name -->
+    <title>Void Runner</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- MODIFIED: Removed Tone.js from here -->
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
-            overflow: hidden; /* Prevent scrolling on mobile */
-            touch-action: none; /* Disable panning and zooming */
+            overflow: hidden;
+            touch-action: none;
             
-            /* Full-page space background */
-            background-color: #1A0A2A; /* Dark Purple */
+            background-color: #1A0A2A;
             background-image: 
                 radial-gradient(circle at 20% 30%, rgba(200, 150, 255, 0.2), transparent 40%),
                 radial-gradient(circle at 80% 70%, rgba(180, 100, 220, 0.15), transparent 40%),
@@ -24,7 +22,7 @@
             background-size: 100% 100%;
         }
         canvas {
-            background-color: transparent; /* Canvas is transparent, body has bg */
+            background-color: transparent;
             touch-action: none; 
         }
         .modal-backdrop {
@@ -40,71 +38,63 @@
             z-index: 50;
             backdrop-filter: blur(5px);
         }
-        /* MODIFIED: Make modal wider for leaderboard */
         #gameModal {
             width: 90%;
-            max-width: 600px; /* Wider modal */
+            max-width: 600px;
             max-height: 90vh;
             overflow-y: auto;
         }
-        /* MODIFIED: Toned down the glow for readability */
         .text-glow-cyan {
             color: #e0faff;
-            text-shadow: 0 0 1px #0ff, 0 0 3px #0ff, 0 0 8px #0ff; /* Reduced blur */
+            text-shadow: 0 0 1px #0ff, 0 0 3px #0ff, 0 0 8px #0ff;
         }
         .text-glow-yellow {
             color: #fffde0;
             text-shadow: 0 0 2px #ff0, 0 0 6px #ff0, 0 0 12px #ff0;
         }
-        /* NEW: Clean subtitle font */
         .text-subtitle {
-            font-family: Arial, sans-serif; /* Use a clean font */
-            color: #cbd5e1; /* slate-300 */
+            font-family: Arial, sans-serif;
+            color: #cbd5e1;
         }
-
-        /* Leaderboard Styles (REMOVED - Not in use) */
         .leaderboard-container { display: none; }
         .leaderboard-list { display: none; }
     </style>
 </head>
-<!-- MODIFIED: h-screen to fill viewport -->
-<body class="text-white flex flex-col items-center h-screen pt-4 pb-12"> <!-- MODIFIED: Increased pb-8 to pb-12 -->
+<body class="text-white flex flex-col items-center h-screen pt-4 pb-12">
 
     <!-- Game Title -->
-    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Void Runner</h1> <!-- MODIFIED: New Name -->
+    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Void Runner</h1>
 
     <!-- Score Display -->
     <div class="mb-2 text-lg md:text-2xl">
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
 
-    <!-- NEW: Hidden <video> for Cat Memes -->
+    <!-- Hidden video for Cat Memes -->
     <video id="catMemePlayer"
-        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-32 h-auto" <!-- MODIFIED: w-48 to w-32 -->
+        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-32 h-auto"
         src=""
         controls 
         preload="none"
-        playsinline <!-- NEW: Prevents fullscreen on mobile -->
+        playsinline
     ></video>
 
-    <!-- NEW: Hidden <video> for Shield Power-up -->
+    <!-- Hidden video for Shield Power-up -->
     <video id="shieldVideoPlayer"
-        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-32 h-auto" <!-- MODIFIED: w-48 to w-32 -->
+        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-32 h-auto"
         src=""
         controls 
         preload="none"
-        playsinline <!-- NEW: Prevents fullscreen on mobile -->
+        playsinline
     ></video>
 
     <!-- Game Canvas Container -->
-    <!-- MODIFIED: This container will define the game size -->
     <div id="game-container" class="w-full flex-1 rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
         <canvas id="gameCanvas" class="w-full h-full"></canvas>
     </div>
 
     <!-- Mobile Touch Controls -->
-    <!-- MODIFIED: Removed max-w-lg, added padding -->
-    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-4"> <!-- MODIFIED: Increased pb-2 to pb-4 -->
+    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-4">
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
         </button>
@@ -116,89 +106,66 @@
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
-            <!-- MODIFIED: Replaced octopus img with a video player for the end screen -->
-            <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none" playsinline></video> <!-- NEW: Added playsinline -->
+            <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none" playsinline></video>
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
-            <!-- MODIFIED: Removed glow from subtitle -->
             <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
             
-            <!-- Submit Score Form (REMOVED) -->
             <div id="submitScoreForm" class="hidden"></div>
 
-            <!-- "Play Again" / "Start Game" Button -->
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
 
-            <!-- Leaderboard Section (REMOVED) -->
             <div id="leaderboard-modal-container" class="hidden"></div>
 
         </div>
     </div>
 
-    <!-- MODIFIED: Moved Tone.js script here, to the end of the body -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
     <script type="module">
-        // --- Firebase SDK Imports (REMOVED) ---
-
-        // --- Declare variables, assign them after DOM loads ---
         let canvas, ctx;
-        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo; // MODIFIED
+        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo;
         let moveLeftBtn, moveRightBtn, gameContainer;
-        let catMemePlayer; // MODIFIED
-        let shieldVideoPlayer; // NEW: For cat5.mp4
+        let catMemePlayer;
+        let shieldVideoPlayer;
  
-
-        // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
         let gameSpeed = 1.0, isGameOver = false, animationFrameId;
         let obstacleSpawnTimer = 0, obstacleSpawnInterval = 100;
         let shieldTimer = 0;
-        const SHIELD_DURATION = 300; // 5 seconds
+        const SHIELD_DURATION = 300;
         let moveLeft = false, moveRight = false;
-        let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
-        let endScreenVideoTimeout; // NEW: Timer for end screen video
-        let shieldVideoTimeout; // NEW: Timer for shield video
+        let catMemeTimeout;
+        let endScreenVideoTimeout;
+        let shieldVideoTimeout;
  
-        // --- NEW: Add your Cat Meme filenames here! ---
-        // 1. Upload your .mp4 files to GitHub
-        // 2. Add the exact filenames to this list
         const catMemeFiles = [
-            "cat1.mp4", // Example 1
-            "cat2.mp4", // Example 2
-            // "my-funny-cat.mp4"
+            "cat1.mp4",
+            "cat2.mp4",
         ];
         
-        // --- AAA Feature Variables ---
         let particles = [];
         let stars = [];
-        // let initialResizeDone = false; // --- REMOVED: Reverted this logic ---
 
-        // --- Image Assets ---
         let playerImage = new Image(), playerImageLoaded = false;
         const playerImageFilename = 'spaceship.png';
         let logoImage = new Image(), logoImageLoaded = false;
         const logoImageFilename = 'logo.png';
         let meteorImage = new Image(), meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
-        // let octopusImage = new Image(), octopusImageLoaded = false; // REMOVED
 
-        // --- Firebase Variables (REMOVED) ---
-
-        // --- Hybrid Sound System ---
         let sounds = {
-            music: new Audio('music.mp3'), // Your music file
+            music: new Audio('music.mp3'),
             shield: null, 
             hit: null,    
             gameover: null,
-            fanfare: null // NEW: Fun sound for game over
+            fanfare: null
         };
         sounds.music.loop = true;
-        sounds.music.volume = 0.05; // 5% volume
+        sounds.music.volume = 0.15;
         let soundInitialized = false;
 
-        // --- Initialize Tone.js sounds ---
         function initSounds() {
             if (typeof Tone === 'undefined') {
                 console.warn("Tone.js not loaded. Sound effects will be silent.");
@@ -211,7 +178,6 @@
             sounds.gameover = new Tone.MonoSynth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.5 } }).toDestination();
             sounds.gameover.volume.value = -5;
             
-            // NEW: Fanfare sound
             sounds.fanfare = new Tone.PolySynth(Tone.Synth, {
                 envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }
             }).toDestination();
@@ -221,7 +187,6 @@
             soundInitialized = true;
         }
 
-        // --- playSound function ---
         function playSound(sound) {
             if (!soundInitialized && sound !== 'music') return;
             if (sound === 'music') {
@@ -231,7 +196,6 @@
             else if (sound === 'shield' && sounds.shield) sounds.shield.triggerAttackRelease("C5", "8n");
             else if (sound === 'hit' && sounds.hit) sounds.hit.triggerAttackRelease("16n");
             else if (sound === 'gameover' && sounds.gameover) sounds.gameover.triggerAttackRelease("C3", "2n");
-            // NEW: Play fanfare
             else if (sound === 'fanfare' && sounds.fanfare) {
                 const now = Tone.now();
                 sounds.fanfare.triggerAttackRelease("C4", "8n", now);
@@ -241,73 +205,52 @@
             }
         }
         
-        // --- Firebase Initialization (REMOVED) ---
-        
-        // --- NEW: Function to play a random cat meme ---
         function playRandomCatMeme() {
             try {
-                if (catMemeFiles.length === 0) return; // Don't do anything if no files are listed
+                if (catMemeFiles.length === 0) return;
 
-                // Clear any previous meme timeout
                 if (catMemeTimeout) clearTimeout(catMemeTimeout);
 
                 const randomFile = catMemeFiles[Math.floor(Math.random() * catMemeFiles.length)];
                 
-                // Set the video source
                 catMemePlayer.src = randomFile;
-                
-                // Show the player
                 catMemePlayer.classList.remove('hidden');
 
-                // Try to play it (will be silent if autoplay is blocked)
                 catMemePlayer.play().catch(e => {
                     console.warn("Video autoplay blocked. User must click play.", e.message);
                 });
 
-                // Set a timer to hide the player after 10 seconds
                 catMemeTimeout = setTimeout(() => {
                     catMemePlayer.classList.add('hidden');
-                    catMemePlayer.src = ''; // Clear src
-                }, 10000); // 10 seconds
+                    catMemePlayer.src = '';
+                }, 10000);
 
             } catch(e) {
                 console.error("Could not play cat meme:", e);
             }
         }
 
-        // --- NEW: Function to play cat5.mp4 on shield pickup ---
         function playShieldVideo() {
             try {
-                // Clear any previous timeout
                 if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
 
-                // Set the video source
                 shieldVideoPlayer.src = 'cat5.mp4';
-                
-                // Show the player (on the right side)
                 shieldVideoPlayer.classList.remove('hidden');
 
-                // Try to play it
                 shieldVideoPlayer.play().catch(e => {
                     console.warn("Shield video autoplay blocked. User must click play.", e.message);
                 });
 
-                // Set a timer to hide the player after 5 seconds
                 shieldVideoTimeout = setTimeout(() => {
                     shieldVideoPlayer.classList.add('hidden');
-                    shieldVideoPlayer.src = ''; // Clear src
-                }, 5000); // 5 seconds
+                    shieldVideoPlayer.src = '';
+                }, 5000);
 
             } catch(e) {
                 console.error("Could not play cat5.mp4:", e);
             }
         }
 
-        // --- Load Leaderboard Data (REMOVED) ---
-        // --- Display Leaderboard (REMOVED) ---
-        // --- Submit Score (REMOVED) ---
-
-        // --- Load Images ---
         function loadAllImages() {
             playerImage.src = playerImageFilename;
             playerImage.onload = () => playerImageLoaded = true;
@@ -318,59 +261,37 @@
             meteorImage.src = meteorImageFilename;
             meteorImage.onload = () => meteorImageLoaded = true;
             meteorImage.onerror = () => console.error("Error loading meteor image");
-            // octopusImage.src = octopusImageFilename; // REMOVED
         }
 
-
-        // --- Game Functions ---
-
-        // MODIFIED: Resize canvas to non-square
         function resizeCanvas() {
             const container = gameContainer;
             const dpr = window.devicePixelRatio || 1;
             
-            // Get CSS size
             const cssWidth = container.clientWidth;
             const cssHeight = container.clientHeight;
 
-            // --- BUG FIX: Check for 0 size during initial load ---
-            // --- REVERTED: Removed this check as it caused issues ---
-            // if (cssWidth === 0 || cssHeight === 0) {
-            //     console.warn(`resizeCanvas called with zero dimensions (${cssWidth}x${cssHeight}). Skipping.`);
-            //     return; // Do nothing if container has no size yet
-            // }
-            // --- END REVERT ---
-
-            // Set internal resolution
             canvas.width = cssWidth * dpr;
             canvas.height = cssHeight * dpr;
 
-            // Set display size (redundant, but good practice)
             canvas.style.width = cssWidth + 'px';
             canvas.style.height = cssHeight + 'px';
             
             ctx.scale(dpr, dpr);
             
-            // Recalculate player size/position
             if (player) {
-                // MODIFIED: Use gameContainer dimensions
-                const oldHeight = player.height / 0.1; // old height was 10% of canvas height
-                const oldXRatio = player.x / (oldHeight * (cssWidth / cssHeight)); // approx old width
+                const oldHeight = player.height / 0.1;
+                const oldXRatio = player.x / (oldHeight * (cssWidth / cssHeight));
                 
-                // New size based on new *height*
-                player.width = cssHeight * 0.1; // Player size is 10% of height
+                player.width = cssHeight * 0.1;
                 player.height = player.width;
-                player.speed = cssWidth * 0.005; // MODIFIED: Speed based on width (was 0.008)
+                player.speed = cssWidth * 0.005;
                 
-                // Reposition
                 player.x = (player.x / (gameContainer.clientWidth || 1)) * cssWidth;
-                player.y = cssHeight - player.height - 10; // 10px from bottom
+                player.y = cssHeight - player.height - 10;
             }
             
-            // --- REVERTED: Initialize stars directly ---
-            initStars(cssWidth, cssHeight); // Initial star render
+            initStars(cssWidth, cssHeight);
 
-            // Redraw if game is running
             if (!isGameOver) {
                 ctx.clearRect(0, 0, cssWidth, cssHeight);
                 if(player) drawPlayer();
@@ -378,24 +299,21 @@
             }
         }
 
-        // MODIFIED: Create player for non-square
         function createPlayer() {
-            // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
-            const playerSize = cssHeight * 0.1; // 10% of height
+            const playerSize = cssHeight * 0.1;
             return {
                 x: cssWidth / 2 - playerSize / 2,
-                y: cssHeight - playerSize - 10, // 10px from bottom
+                y: cssHeight - playerSize - 10,
                 width: playerSize,
                 height: playerSize,
-                speed: cssWidth * 0.005, // MODIFIED: Speed based on width (was 0.008)
+                speed: cssWidth * 0.005,
                 isShielded: false,
                 invincibilityTimer: 0
             };
         }
 
-        // Draw player (unchanged)
         function drawPlayer() {
             if (player.isShielded) {
                 ctx.save();
@@ -413,7 +331,6 @@
                 ctx.restore();
             }
             if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
-                // Skip drawing to flicker
             } else {
                 if (playerImageLoaded) {
                     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
@@ -427,11 +344,9 @@
             }
         }
 
-        // MODIFIED: Draw UI for non-square
         function drawUI() {
-            // MODIFIED: Use gameContainer
             const cssHeight = gameContainer.clientHeight;
-            const lifeSize = cssHeight * 0.05; // 5% of height
+            const lifeSize = cssHeight * 0.05;
             const padding = cssHeight * 0.02;
             ctx.save();
             if (playerImageLoaded) {
@@ -449,24 +364,20 @@
             ctx.restore();
         }
 
-        // MODIFIED: Update player for non-square
         function updatePlayer() {
             if (moveLeft) player.x -= player.speed;
             if (moveRight) player.x += player.speed;
             if(moveLeft || moveRight) emitThrusterParticles();
 
-            // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
             if (player.x < 0) player.x = 0;
             if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
         }
 
-        // MODIFIED: Create falling object for non-square
         function createFallingObject() {
-            // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
-            const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02); // Based on width
+            const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02);
             let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
             if (rand < 0.05 && score > 200) {
@@ -477,18 +388,16 @@
                 baseSpeed = gameSpeed * 1.1;
             }
             
-            // --- BUG FIX: Ensure speed is always positive ---
             const calculatedSpeed = (Math.random() * 2 + baseSpeed);
             
             obstacles.push({
                 x: Math.random() * (cssWidth - objectSize), y: -objectSize,
                 width: objectSize, height: objectSize,
-                speed: Math.max(1.0, calculatedSpeed), // Failsafe, speed must be at least 1.0
+                speed: Math.max(1.0, calculatedSpeed),
                 type: objectType
             });
         }
 
-        // Draw bomb (unchanged)
         function drawBomb(x, y, radius) {
             ctx.save();
             const centerX = x + radius, centerY = y + radius;
@@ -504,7 +413,6 @@
             ctx.restore();
         }
 
-        // Draw booster (unchanged)
         function drawBooster(x, y, radius) {
             ctx.save();
             const centerX = x + radius, centerY = y + radius;
@@ -518,9 +426,7 @@
             ctx.restore();
         }
 
-        // MODIFIED: Update/draw obstacles for non-square
         function updateAndDrawObstacles() {
-            // MODIFIED: Use gameContainer
             const cssHeight = gameContainer.clientHeight;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
@@ -535,13 +441,10 @@
                     obstacles.splice(i, 1);
                     score += 10;
                     scoreEl.textContent = score;
-                    // This logic is replaced in gameLoop, but harmless
-                    // if (score >= 500 && score % 100 === 0) gameSpeed += 0.2; 
                 }
             }
         }
 
-        // Check collisions (unchanged)
         function checkCollisions() {
             if (player.invincibilityTimer > 0) return;
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -555,7 +458,7 @@
                         obstacles.splice(i, 1);
                         playSound('shield');
                         emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
-                        playShieldVideo(); // --- NEW: Play cat5.mp4 ---
+                        playShieldVideo();
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
@@ -571,7 +474,7 @@
                                 break;
                             } else {
                                 player.invincibilityTimer = 240;
-                                playRandomCatMeme(); // --- MODIFIED: Play meme ---
+                                playRandomCatMeme();
                             }
                         }
                     }
@@ -579,115 +482,89 @@
             }
         }
 
-        // MODIFIED: Game over (to show leaderboard & confetti)
         function gameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
             
-            // NEW: Hide cat video on Game Over
-            catMemePlayer.classList.add('hidden'); // MODIFIED
-            catMemePlayer.src = ''; // MODIFIED
-            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+            catMemePlayer.classList.add('hidden');
+            catMemePlayer.src = '';
+            if (catMemeTimeout) clearTimeout(catMemeTimeout);
             
-            // NEW: Hide shield video on Game Over
             shieldVideoPlayer.classList.add('hidden');
             shieldVideoPlayer.src = '';
             if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
             
-            // NEW: Play fanfare and stop music
             playSound('fanfare'); 
             sounds.music.pause();
             
-            // NEW: Emit confetti
-            // MODIFIED: Use gameContainer
             emitConfetti(gameContainer.clientWidth, gameContainer.clientHeight);
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
             
-            // MODIFIED: Show cat4.mp4 video
             try {
-                if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear previous
+                if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout);
                 endScreenVideo.src = 'cat4.mp4';
                 endScreenVideo.classList.remove('hidden');
                 endScreenVideo.play().catch(e => {
                     console.warn("End screen video autoplay blocked. User must click play.", e.message);
                 });
                 
-                // --- NEW: Hide video after 5 seconds ---
                 endScreenVideoTimeout = setTimeout(() => {
                     endScreenVideo.classList.add('hidden');
                     endScreenVideo.src = '';
-                }, 5000); // 5 seconds
-                // --- END NEW ---
+                }, 5000);
 
             } catch (e) {
                 console.error("Could not load cat4.mp4", e);
             }
             
-            // MODIFIED: Removed code that showed the submit form and leaderboard
             restartButton.classList.remove('hidden');
             restartButton.textContent = 'Play Again';
             modalBackdrop.classList.remove('hidden');
         }
 
-        // MODIFIED: Start/restart game
         function initGame() {
-            // --- MODIFIED: Ensure resizeCanvas runs successfully first ---
             resizeCanvas(); 
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
-
-            // Failsafe check (REVERTED - This was causing problems)
-            // if (cssWidth === 0 || cssHeight === 0) {
-            //     console.error(`initGame called with zero dimensions (${cssWidth}x${cssHeight}). Retrying...`);
-            //     requestAnimationFrame(initGame); 
-            //     return; // Stop execution
-            // }
-            // --- END MODIFICATION ---
 
             console.log(`initGame starting with dimensions ${cssWidth}x${cssHeight}.`);
 
             initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
-            particles = []; // Clear confetti
+            particles = [];
             score = 0;
             lives = 3;
             gameSpeed = 1.0;
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 80; // MODIFIED: Start with a faster spawn rate (was 100)
+            obstacleSpawnInterval = 80;
             shieldTimer = 0;
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
             
-            // MODIFIED: Hide end screen video
             endScreenVideo.classList.add('hidden');
-            endScreenVideo.src = ''; // Stop it from playing
-            if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear timer
+            endScreenVideo.src = '';
+            if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout);
         
-            // MODIFIED: Hide cat video on Restart
-            catMemePlayer.classList.add('hidden'); // MODIFIED
-            catMemePlayer.src = ''; // MODIFIED
-            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
+            catMemePlayer.classList.add('hidden');
+            catMemePlayer.src = '';
+            if (catMemeTimeout) clearTimeout(catMemeTimeout);
 
-            // NEW: Hide shield video on Restart
             shieldVideoPlayer.classList.add('hidden');
             shieldVideoPlayer.src = '';
             if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
             
             playSound('music');
             
-            // --- MODIFIED: Ensure gameLoop only starts once ---
             if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId); // Stop previous loop if any
+                cancelAnimationFrame(animationFrameId);
             }
             gameLoop();
-            // --- END MODIFICATION ---
         }
         
-        // --- Particle Functions (unchanged) ---
         function emitParticles(x, y, count, color) {
             for (let i = 0; i < count; i++) {
                 particles.push({
@@ -711,24 +588,22 @@
             }
         }
 
-        // --- NEW: Confetti Particle Emitter ---
         function emitConfetti(width, height) {
             const confettiColors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#277da1', '#ffffff'];
-            for (let i = 0; i < 200; i++) { // 200 particles
+            for (let i = 0; i < 200; i++) {
                 particles.push({
                     type: 'confetti',
-                    x: width / 2, // Start at center
+                    x: width / 2,
                     y: height / 2,
-                    vx: (Math.random() - 0.5) * 15, // Explode horizontally
-                    vy: (Math.random() - 0.5) * 20 - 5, // Explode upwards
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.5) * 20 - 5,
                     size: Math.random() * 5 + 3,
                     color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-                    life: 200 + Math.random() * 100 // Long life
+                    life: 200 + Math.random() * 100
                 });
             }
         }
 
-        // --- MODIFIED: Particle Physics ---
         function updateAndDrawParticles() {
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
@@ -736,17 +611,15 @@
                 p.y += p.vy; 
                 p.life--;
 
-                // NEW: Add gravity and drag to confetti
                 if (p.type === 'confetti') {
-                    p.vy += 0.1; // Gravity
-                    p.vx *= 0.99; // Air drag
+                    p.vy += 0.1;
+                    p.vx *= 0.99;
                 }
 
                 if (p.life <= 0) {
                     particles.splice(i, 1);
                 } else {
                     ctx.save();
-                    // Fade out regular particles, but not confetti (it fades by falling off screen)
                     if (p.type !== 'confetti') {
                         ctx.globalAlpha = p.life / 60;
                     } else {
@@ -759,7 +632,6 @@
             }
         }
 
-        // --- MODIFIED: Starfield Functions (for non-square) ---
         function createStar(width, height) {
             return {
                 x: Math.random() * width, y: Math.random() * height,
@@ -786,31 +658,24 @@
             ctx.restore();
         }
 
-        // --- *** MAJOR BUG FIX *** ---
-        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
         function gameLoop() {
-            // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
             
-            // 1. CLEAR THE CANVAS FIRST
-            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
             
-            // 2. DRAW BACKGROUND STUFF
             updateAndDrawStars(cssWidth, cssHeight);
             
             if (logoImageLoaded) {
                 ctx.save();
                 ctx.globalAlpha = 0.1;
-                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
+                const logoSize = Math.min(cssWidth, cssHeight) * 0.9;
                 ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
                 ctx.restore();
             }
 
-            // 3. DRAW PARTICLES
-            updateAndDrawParticles(); // Draw particles (confetti, thrusters, etc)
+            updateAndDrawParticles();
 
-            // 4. RUN GAME LOGIC *IF* NOT GAME OVER
             if (!isGameOver) { 
                 if (player.isShielded) {
                     shieldTimer--;
@@ -819,52 +684,41 @@
                 if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
                 updatePlayer();
-                updateAndDrawObstacles(); // This will NOW be visible
+                updateAndDrawObstacles();
                 checkCollisions();
 
                 obstacleSpawnTimer++;
                 
-                // --- MODIFICATION: Make spawn rate increase from the START ---
-                // Gradually decrease spawn time from the beginning
-                const progress = Math.min(1, score / 500); // 0.0 -> 1.0 as score goes 0 -> 500
-                const baseInterval = 80; // Starting interval (was 100)
-                const minInterval = 30; // Max spawn rate
-                const reduction = (baseInterval - minInterval) * progress; // How much to reduce by
+                const progress = Math.min(1, score / 500);
+                const baseInterval = 80;
+                const minInterval = 30;
+                const reduction = (baseInterval - minInterval) * progress;
                 obstacleSpawnInterval = Math.max(minInterval, baseInterval - reduction);
-                // --- END MODIFICATION ---
                 
                 if (obstacleSpawnTimer >= obstacleSpawnInterval) {
                     createFallingObject();
                     obstacleSpawnTimer = 0;
                 }
                 
-                // 5. DRAW FOREGROUND STUFF
                 drawPlayer();
                 drawUI();
             }
 
-            // 6. LOOP
             animationFrameId = requestAnimationFrame(gameLoop);
         }
-        // --- *** END MAJOR BUG FIX *** ---
         
-        // --- MODIFIED: Initial Game Start ---
         function main() {
             try {
-                modalTitle.textContent = 'Void Runner'; // MODIFIED: New Name
-                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`; // MODIFIED: Use new font class
+                modalTitle.textContent = 'Void Runner';
+                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`;
                 
-                // --- MODIFICATION: REMOVED ALL AUTH CHECKS ---
                 restartButton.textContent = 'Start Game';
                 restartButton.disabled = false;
                 
-                // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
-                // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
                 restartButton.classList.remove('hidden');
                 modalBackdrop.classList.remove('hidden');
-                endScreenVideo.classList.add('hidden'); // MODIFIED
+                endScreenVideo.classList.add('hidden');
                 loadAllImages();
-                // initFirebase(); // REMOVED
             } catch (error) {
                 console.error("Error in main() function:", error);
                 const modal = document.getElementById('modalBackdrop');
@@ -876,29 +730,21 @@
             }
         }
         
-        // --- MODIFIED: Main Startup Function ---
         function onDomReady() {
-            // --- Assign all DOM elements ---
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
-            gameContainer = document.getElementById('game-container'); // NEW
+            gameContainer = document.getElementById('game-container');
             scoreEl = document.getElementById('score');
             modalBackdrop = document.getElementById('modalBackdrop');
             modalTitle = document.getElementById('modalTitle');
             modalScore = document.getElementById('modalScore');
             restartButton = document.getElementById('restartButton');
-            endScreenVideo = document.getElementById('endScreenVideo'); // MODIFIED
-            // leaderboardList = document.getElementById('leaderboardList'); // REMOVED
-            // leaderboardModalContainer = document.getElementById('leaderboard-modal-container'); // REMOVED
-            // submitScoreForm = document.getElementById('submitScoreForm'); // REMOVED
-            // playerNameInput = document.getElementById('playerNameInput'); // REMOVED
-            // submitScoreBtn = document.getElementById('submitScoreBtn'); // REMOVED
+            endScreenVideo = document.getElementById('endScreenVideo');
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
-            catMemePlayer = document.getElementById('catMemePlayer'); // MODIFIED
-            shieldVideoPlayer = document.getElementById('shieldVideoPlayer'); // NEW
+            catMemePlayer = document.getElementById('catMemePlayer');
+            shieldVideoPlayer = document.getElementById('shieldVideoPlayer');
             
-            // --- Add all Event Listeners ---
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
                 if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
@@ -912,55 +758,43 @@
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
-            // --- MODIFIED: Ultra-Failsafe Click Handler (Reverted) ---
             restartButton.addEventListener('click', () => {
                 try {
-                    // --- REMOVED AUTH CHECK ---
-
                     if (soundInitialized) {
-                        // Sound is ready, just start/restart the game
-                        initGame(); // Call directly
+                        initGame();
                         return;
                     }
 
-                    // --- First time click: Try to start audio ---
                     if (typeof Tone !== 'undefined') {
                         Tone.start().then(() => {
                             console.log("AudioContext started!");
                             initSounds();
                             soundInitialized = true;
-                            initGame(); // Start game *after* sound is ready
+                            initGame();
                         }).catch(e => {
                             console.error("Tone.start() failed, will run game without sound effects:", e);
-                            soundInitialized = false; // Mark as failed
-                            initGame(); // Start game anyway
+                            soundInitialized = false;
+                            initGame();
                         });
                     } else {
-                        // Tone.js isn't loaded.
                         console.warn("Tone.js not loaded. Starting game without sound effects.");
                         soundInitialized = false;
-                        initGame(); // Start game anyway
+                        initGame();
                     }
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
-                     initGame(); // Failsafe: Call directly
+                     initGame();
                 }
             });
-            // --- END MODIFICATION ---
 
-            // submitScoreBtn.addEventListener('click', submitScore); // REMOVED
-            window.addEventListener('resize', resizeCanvas); // Resize canvas on window resize
+            window.addEventListener('resize', resizeCanvas);
 
-            // --- Run the main startup logic ---
-            // MODIFIED: Reverted - Call main directly to show modal
-            resizeCanvas(); // Call resize once to get initial size
-            main(); // Call main to show the modal
+            resizeCanvas();
+            main();
         }
 
-        // --- Wait for DOM to be ready before running setup ---
         window.addEventListener('DOMContentLoaded', onDomReady);
         
     </script>
 </body>
 </html>
-
