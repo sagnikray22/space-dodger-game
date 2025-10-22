@@ -664,7 +664,7 @@
         }
 
         // --- *** MAJOR BUG FIX *** ---
-        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
+        // --- MODIFIED: Main game loop (for non-square) ---
         function gameLoop() {
             // MODIFIED: Use gameContainer
             const cssWidth = gameContainer.clientWidth;
@@ -809,27 +809,37 @@
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
+            // --- MODIFIED: Simplified and Failsafe Click Handler ---
             restartButton.addEventListener('click', () => {
-                // NEW: Don't start if auth isn't ready
-                if (!isAuthReady && restartButton.textContent === 'Loading...') {
-                    console.log("Waiting for auth...");
-                    return;
-                }
-                
-                if (!soundInitialized && typeof Tone !== 'undefined') {
-                    Tone.start().then(() => {
-                        console.log("AudioContext started!");
-                        initSounds();
+                try {
+                    // Don't start if the button is still in "Loading..." state
+                    if (!isAuthReady) {
+                        console.log("Waiting for auth...");
+                        return;
+                    }
+
+                    if (!soundInitialized && typeof Tone !== 'undefined') {
+                        // This is the first click. Start the audio context.
+                        Tone.start().then(() => {
+                            console.log("AudioContext started!");
+                            initSounds(); // Define the synths
+                            initGame();   // Start the game
+                        }).catch(e => {
+                            console.error("Tone.start() failed, will run game without sound effects:", e);
+                            soundInitialized = false; // Mark as failed
+                            initGame(); // Start the game anyway
+                        });
+                    } else {
+                        // Audio is already running, or Tone.js failed to load.
+                        // Just start the game.
                         initGame();
-                    }).catch(e => {
-                        console.error("Tone.start() failed (sound effects may not work):", e);
-                        // --- FIX: Start the game anyway, just without sound effects ---
-                        initGame(); 
-                    });
-                } else {
-                    initGame();
+                    }
+                } catch (e) {
+                    console.error("Error in restart click handler:", e);
+                    initGame(); // Failsafe: If anything else breaks, just start the game
                 }
             });
+            // --- END MODIFICATION ---
 
             submitScoreBtn.addEventListener('click', submitScore);
             window.addEventListener('resize', resizeCanvas); // Resize canvas on window resize
@@ -847,6 +857,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
