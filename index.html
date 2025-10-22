@@ -109,7 +109,7 @@
 
     <!-- NEW: Hidden <video> for Cat Memes -->
     <video id="catMemePlayer"
-        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-48 h-auto" <!-- MODIFIED: Removed fixed w/h, added responsive w/h -->
+        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-32 h-auto" <!-- MODIFIED: w-48 to w-32 -->
         src=""
         controls 
         preload="none"
@@ -118,7 +118,7 @@
 
     <!-- NEW: Hidden <video> for Shield Power-up -->
     <video id="shieldVideoPlayer"
-        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-48 h-auto" <!-- MODIFIED: Removed fixed w/h, added responsive w/h -->
+        class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-32 h-auto" <!-- MODIFIED: w-48 to w-32 -->
         src=""
         controls 
         preload="none"
@@ -154,6 +154,7 @@
             <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
             
             <!-- Submit Score Form -->
+            <!-- MODIFIED: Added 'hidden' to permanently hide the form -->
             <div id="submitScoreForm" class="hidden">
                 <input type="text" id="playerNameInput" placeholder="Enter your name" class="w-full p-2 rounded bg-gray-700 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-cyan-300">
                 <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50 disabled:bg-gray-500 disabled:shadow-none disabled:cursor-not-allowed">
@@ -167,6 +168,7 @@
             </button>
 
             <!-- NEW: Leaderboard Section (MOVED here) -->
+            <!-- MODIFIED: Added 'hidden' to permanently hide the leaderboard -->
             <div id="leaderboard-modal-container" class="leaderboard-container hidden">
                 <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
                 <ol id="leaderboardList" class="leaderboard-list">
@@ -507,266 +509,11 @@
                 player.y = cssHeight - player.height - 10; // 10px from bottom
             }
             
-            initStars(cssWidth, cssHeight);
-
-            if (!isGameOver) {
-                ctx.clearRect(0, 0, cssWidth, cssHeight);
-                if(player) drawPlayer();
-                updateAndDrawObstacles();
-            }
-        }
-
-        // MODIFIED: Create player for non-square
-        function createPlayer() {
-            // MODIFIED: Use gameContainer
-            const cssWidth = gameContainer.clientWidth;
-            const cssHeight = gameContainer.clientHeight;
-            const playerSize = cssHeight * 0.1; // 10% of height
-            return {
-                x: cssWidth / 2 - playerSize / 2,
-                y: cssHeight - playerSize - 10, // 10px from bottom
-                width: playerSize,
-                height: playerSize,
-                speed: cssWidth * 0.008,
-                isShielded: false,
-                invincibilityTimer: 0
-            };
-        }
-
-        // Draw player (unchanged)
-        function drawPlayer() {
-            if (player.isShielded) {
-                ctx.save();
-                const centerX = player.x + player.width / 2;
-                const centerY = player.y + player.height / 2;
-                const radius = player.width * 0.7;
-                const pulse = Math.abs(Math.sin(Date.now() * 0.01));
-                ctx.fillStyle = `rgba(238, 130, 238, ${0.2 + pulse * 0.2})`;
-                ctx.strokeStyle = `rgba(255, 0, 255, ${0.6 + pulse * 0.3})`;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            }
-            if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
-                // Skip drawing to flicker
-            } else {
-                if (playerImageLoaded) {
-                    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-                } else {
-                    ctx.fillStyle = '#4A90E2';
-                    ctx.shadowColor = '#81D4FA';
-                    ctx.shadowBlur = 15;
-                    ctx.fillRect(player.x, player.y, player.width, player.height);
-                    ctx.shadowBlur = 0;
-                }
-            }
-        }
-
-        // MODIFIED: Draw UI for non-square
-        function drawUI() {
-            // MODIFIED: Use gameContainer
-            const cssHeight = gameContainer.clientHeight;
-            const lifeSize = cssHeight * 0.05; // 5% of height
-            const padding = cssHeight * 0.02;
-            ctx.save();
-            if (playerImageLoaded) {
-                ctx.globalAlpha = 0.8;
-                for (let i = 0; i < lives; i++) {
-                    ctx.drawImage(playerImage, padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
-                }
-                ctx.globalAlpha = 1.0;
-            } else {
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
-                for (let i = 0; i < lives; i++) {
-                    ctx.fillRect(padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
-                }
-            }
-            ctx.restore();
-        }
-
-        // MODIFIED: Update player for non-square
-        function updatePlayer() {
-            if (moveLeft) player.x -= player.speed;
-            if (moveRight) player.x += player.speed;
-            if(moveLeft || moveRight) emitThrusterParticles();
-
-            // MODIFIED: Use gameContainer
-            const cssWidth = gameContainer.clientWidth;
-            if (player.x < 0) player.x = 0;
-            if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
-        }
-
-        // MODIFIED: Create falling object for non-square
-        function createFallingObject() {
-            // MODIFIED: Use gameContainer
-            const cssWidth = gameContainer.clientWidth;
-            const cssHeight = gameContainer.clientHeight;
-            const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02); // Based on width
-            let objectType = 'meteor', baseSpeed = gameSpeed;
-            const rand = Math.random();
-            if (rand < 0.05 && score > 200) {
-                objectType = 'booster';
-                baseSpeed = gameSpeed * 1.2;
-            } else if (rand < 0.10 && score > 100) {
-                objectType = 'bomb';
-                baseSpeed = gameSpeed * 1.1;
-            }
-            
-            // --- BUG FIX: Ensure speed is always positive ---
-            const calculatedSpeed = (Math.random() * 2 + baseSpeed);
-            
-            obstacles.push({
-                x: Math.random() * (cssWidth - objectSize), y: -objectSize,
-                width: objectSize, height: objectSize,
-                speed: Math.max(1.0, calculatedSpeed), // Failsafe, speed must be at least 1.0
-                type: objectType
-            });
-        }
-
-        // Draw bomb (unchanged)
-        function drawBomb(x, y, radius) {
-            ctx.save();
-            const centerX = x + radius, centerY = y + radius;
-            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#222'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.fill();
-            ctx.beginPath(); ctx.arc(centerX, centerY - radius * 0.8, radius * 0.2, 0, 2 * Math.PI);
-            ctx.fillStyle = '#999'; ctx.fill();
-            ctx.beginPath(); ctx.moveTo(centerX, centerY - radius * 0.9);
-            ctx.lineTo(centerX + radius * 0.1, centerY - radius * 1.2);
-            ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.stroke();
-            ctx.beginPath(); ctx.arc(centerX + radius * 0.1, centerY - radius * 1.2, radius * 0.15, 0, 2 * Math.PI);
-            ctx.fillStyle = 'yellow'; ctx.shadowColor = 'orange'; ctx.shadowBlur = 15; ctx.fill();
-            ctx.restore();
-        }
-
-        // Draw booster (unchanged)
-        function drawBooster(x, y, radius) {
-            ctx.save();
-            const centerX = x + radius, centerY = y + radius;
-            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(200, 255, 200, 1)');
-            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)');
-            gradient.addColorStop(1, 'rgba(0, 150, 0, 0)');
-            ctx.fillStyle = gradient;
-            ctx.shadowColor = '#00FF00'; ctx.shadowBlur = 20; ctx.fill();
-            ctx.restore();
-        }
-
-        // MODIFIED: Update/draw obstacles for non-square
-        function updateAndDrawObstacles() {
-            // MODIFIED: Use gameContainer
-            const cssHeight = gameContainer.clientHeight;
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                let obs = obstacles[i];
-                obs.y += obs.speed;
-                if (obs.type === 'meteor') {
-                    if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
-                    else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
-                } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
-                else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
-
-                if (obs.y > cssHeight) {
-                    obstacles.splice(i, 1);
-                    score += 10;
-                    scoreEl.textContent = score;
-                    // This logic is replaced in gameLoop, but harmless
-                    // if (score >= 500 && score % 100 === 0) gameSpeed += 0.2; 
-                }
-            }
-        }
-
-        // Check collisions (unchanged)
-        function checkCollisions() {
-            if (player.invincibilityTimer > 0) return;
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                let obs = obstacles[i];
-                const padding = player.width * 0.15;
-                if (player.x < obs.x + obs.width - padding && player.x + player.width > obs.x + padding &&
-                    player.y < obs.y + obs.height - padding && player.y + player.height > obs.y + padding) {
-                    if (obs.type === 'booster') {
-                        player.isShielded = true;
-                        shieldTimer = SHIELD_DURATION;
-                        obstacles.splice(i, 1);
-                        playSound('shield');
-                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
-                        playShieldVideo(); // --- NEW: Play cat5.mp4 ---
-                    } else if (obs.type === 'meteor' || obs.type === 'bomb') {
-                        if (player.isShielded) {
-                            obstacles.splice(i, 1);
-                            playSound('hit');
-                            emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 30, '#FF00FF');
-                        } else {
-                            lives--;
-                            playSound(obs.type === 'bomb' ? 'gameover' : 'hit');
-                            emitParticles(player.x + player.width / 2, player.y + player.height / 2, 40, '#FF4500');
-                            obstacles.splice(i, 1);
-                            if (lives <= 0) {
-                                gameOver();
-                                break;
-                            } else {
-                                player.invincibilityTimer = 240;
-                                playRandomCatMeme(); // --- MODIFIED: Play meme ---
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // MODIFIED: Game over (to show leaderboard & confetti)
-        function gameOver() {
-            isGameOver = true;
-            cancelAnimationFrame(animationFrameId);
-            
-            // NEW: Hide cat video on Game Over
-            catMemePlayer.classList.add('hidden'); // MODIFIED
-            catMemePlayer.src = ''; // MODIFIED
-            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
-            
-            // NEW: Hide shield video on Game Over
-            shieldVideoPlayer.classList.add('hidden');
-            shieldVideoPlayer.src = '';
-            if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
-            
-            // NEW: Play fanfare and stop music
-            playSound('fanfare'); 
-            sounds.music.pause();
-            
-            // NEW: Emit confetti
-            // MODIFIED: Use gameContainer
-            emitConfetti(gameContainer.clientWidth, gameContainer.clientHeight);
-            
-            modalTitle.textContent = 'Game Over!';
-            modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
-            
-            // MODIFIED: Show cat4.mp4 video
-            try {
-                if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear previous
-                endScreenVideo.src = 'cat4.mp4';
-                endScreenVideo.classList.remove('hidden');
-                endScreenVideo.play().catch(e => {
-                    console.warn("End screen video autoplay blocked. User must click play.", e.message);
-                });
-                
-                // --- NEW: Hide video after 5 seconds ---
-                endScreenVideoTimeout = setTimeout(() => {
-                    endScreenVideo.classList.add('hidden');
-                    endScreenVideo.src = '';
-                }, 5000); // 5 seconds
-                // --- END NEW ---
-
-            } catch (e) {
-                console.error("Could not load cat4.mp4", e);
-            }
-            
-            submitScoreForm.classList.remove('hidden');
+            // MODIFIED: Removed code that showed the submit form and leaderboard
+            // submitScoreForm.classList.remove('hidden'); // REMOVED
             restartButton.classList.remove('hidden');
             restartButton.textContent = 'Play Again';
-            leaderboardModalContainer.classList.remove('hidden'); // NEW: Show leaderboard
+            // leaderboardModalContainer.classList.remove('hidden'); // REMOVED
             modalBackdrop.classList.remove('hidden');
         }
 
@@ -800,8 +547,8 @@
             submitScoreBtn.textContent = 'Submit Score';
             submitScoreBtn.classList.add('bg-green-500');
             submitScoreBtn.classList.remove('bg-gray-500');
-            submitScoreForm.classList.add('hidden');
-            leaderboardModalContainer.classList.add('hidden'); // NEW: Hide leaderboard
+            // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
+            // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
             
             // NEW: Hide cat video on Restart
             catMemePlayer.classList.add('hidden'); // MODIFIED
@@ -1008,8 +755,8 @@
                 }, 5000); // 5 seconds
                 // --- END NEW ---
                 
-                submitScoreForm.classList.add('hidden');
-                leaderboardModalContainer.classList.add('hidden'); // Hide leaderboard
+                // submitScoreForm.classList.add('hidden'); // REMOVED (already hidden)
+                // leaderboardModalContainer.classList.add('hidden'); // REMOVED (already hidden)
                 restartButton.classList.remove('hidden');
                 modalBackdrop.classList.remove('hidden');
                 endScreenVideo.classList.add('hidden'); // MODIFIED
@@ -1096,6 +843,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
