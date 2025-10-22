@@ -8,7 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- MODIFIED: Removed Tone.js script -->
+    <!-- MODIFIED: Re-added Tone.js script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -156,7 +157,6 @@
         // --- AAA Feature Variables ---
         let particles = [];
         let stars = [];
-        // MODIFIED: Removed musicLoop
 
         // --- Image Assets ---
         let playerImage = new Image(), playerImageLoaded = false;
@@ -170,36 +170,73 @@
 
         // --- Firebase Variables ---
         let db, auth, userId, appId;
-        // MODIFIED: Removed soundInitialized
 
-        // --- MODIFIED: Sound System (using HTML Audio) ---
-        // This creates audio objects that the game will play.
-        // Make sure you upload files with these EXACT names to GitHub.
+        // --- MODIFIED: Hybrid Sound System ---
         let sounds = {
-            shield: new Audio('shield.mp3'),
-            hit: new Audio('hit.mp3'),
-            gameover: new Audio('gameover.mp3'),
-            music: new Audio('music.mp3')
+            music: new Audio('music.mp3'), // Your music file
+            shield: null, // Will be a Tone.js synth
+            hit: null,    // Will be a Tone.js synth
+            gameover: null // Will be a Tone.js synth
         };
-        sounds.music.loop = true; // Make the background music loop
-        sounds.music.volume = 0.05; // MODIFIED: Background music even quieter (was 0.1)
-        
-        // NEW: Ensure sound effects are at full volume
-        sounds.shield.volume = 1.0;
-        sounds.hit.volume = 1.0;
-        sounds.gameover.volume = 1.0;
-        // --- END MODIFICATION ---
-        
+        sounds.music.loop = true;
+        sounds.music.volume = 0.05; // 5% volume
+        let soundInitialized = false;
+
+        // --- NEW: Initialize Tone.js sounds ---
+        function initSounds() {
+            // Check if Tone is loaded
+            if (typeof Tone === 'undefined') {
+                console.warn("Tone.js not loaded. Sound effects will be silent.");
+                return;
+            }
+            
+            // Create synth for shield pickup
+            sounds.shield = new Tone.Synth({
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.2 }
+            }).toDestination();
+            sounds.shield.volume.value = 0; // Full volume
+
+            // Create synth for getting hit
+            sounds.hit = new Tone.NoiseSynth({
+                noise: { type: "white" },
+                envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 }
+            }).toDestination();
+            sounds.hit.volume.value = -10; // A bit quieter
+
+            // Create synth for game over
+            sounds.gameover = new Tone.MonoSynth({
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.5 }
+            }).toDestination();
+            sounds.gameover.volume.value = -5;
+            
+            console.log("Sound effects initialized");
+            soundInitialized = true;
+        }
+
         // --- MODIFIED: playSound function ---
         function playSound(sound) {
-            if (sounds[sound]) {
-                sounds[sound].currentTime = 0; // Rewind to start
-                sounds[sound].play().catch(e => {
-                    // This error is common if the user hasn't interacted yet
-                    console.warn("Sound play failed (user interaction might be needed):", e.message);
-                });
+            if (!soundInitialized && sound !== 'music') {
+                // Don't play effects if not ready
+                return;
+            }
+
+            if (sound === 'music') {
+                sounds.music.currentTime = 0;
+                sounds.music.play().catch(e => console.warn("Music play failed:", e.message));
+            } 
+            else if (sound === 'shield' && sounds.shield) {
+                sounds.shield.triggerAttackRelease("C5", "8n");
+            } 
+            else if (sound === 'hit' && sounds.hit) {
+                sounds.hit.triggerAttackRelease("16n");
+            } 
+            else if (sound === 'gameover' && sounds.gameover) {
+                sounds.gameover.triggerAttackRelease("C3", "2n");
             }
         }
+        // --- END MODIFICATION ---
         
         // --- Firebase Initialization ---
         async function initFirebase() {
@@ -807,8 +844,16 @@
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
             restartButton.addEventListener('click', () => {
-                // MODIFIED: No Tone.js logic
-                initGame();
+                // MODIFIED: Initialize sounds on first click
+                if (!soundInitialized && typeof Tone !== 'undefined') {
+                    Tone.start().then(() => {
+                        console.log("AudioContext started!");
+                        initSounds();
+                        initGame();
+                    }).catch(e => console.error("Tone.start() failed:", e));
+                } else {
+                    initGame();
+                }
             });
 
             submitScoreBtn.addEventListener('click', submitScore);
@@ -826,5 +871,4 @@
     </script>
 </body>
 </html>
-
 
