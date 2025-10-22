@@ -687,7 +687,7 @@
         modalTitle.textContent = 'Space Dodger';
         modalScore.textContent = 'Dodge the meteors!';
         restartButton.textContent = 'Start Game';
-        modalBackMoving.classList.remove('hidden');
+        modalBackdrop.classList.remove('hidden'); // MODIFIED: Fixed typo (was modalBackMoving)
         modalImage.classList.add('hidden'); // --- NEW: Hide image for Start modal ---
         
         // We don't call initGame() here, we wait for the user to click "Start Game"
@@ -695,5 +695,6 @@
     </script>
 </body>
 </html>
+
 
 
