@@ -8,18 +8,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- MODIFIED: Re-added Tone.js script -->
+    <!-- Load Tone.js for sound -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
             overflow: hidden; /* Prevent scrolling on mobile */
             touch-action: none; /* Disable panning and zooming */
+            
+            /* Full-page space background */
+            background-color: #1A0A2A; /* Dark Purple */
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(200, 150, 255, 0.2), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(180, 100, 220, 0.15), transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(220, 180, 255, 0.05), transparent 20%);
+            background-size: 100% 100%;
         }
         canvas {
-            background-color: #1A0A2A; /* Dark Purple */
-            touch-action: none; /* Disable touch gestures on canvas */
-            /* Removed background-image from here, will be drawn on canvas */
+            background-color: transparent; /* Canvas is transparent, body has bg */
+            touch-action: none; 
         }
         .modal-backdrop {
             position: fixed;
@@ -34,6 +41,13 @@
             z-index: 50;
             backdrop-filter: blur(5px);
         }
+        /* MODIFIED: Make modal wider for leaderboard */
+        #gameModal {
+            width: 90%;
+            max-width: 600px; /* Wider modal */
+            max-height: 90vh;
+            overflow-y: auto;
+        }
         .text-glow-cyan {
             color: #e0faff;
             text-shadow: 0 0 2px #0ff, 0 0 6px #0ff, 0 0 12px #0ff;
@@ -43,10 +57,9 @@
             text-shadow: 0 0 2px #ff0, 0 0 6px #ff0, 0 0 12px #ff0;
         }
 
-        /* Leaderboard Styles */
+        /* Leaderboard Styles (for inside the modal) */
         .leaderboard-container {
-            width: 90%;
-            max-width: 600px;
+            width: 100%; /* Full width of modal */
             margin-top: 20px;
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid #8B5CF6; /* Purple border */
@@ -58,7 +71,7 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 200px;
+            max-height: 200px; /* Scrollable list */
             overflow-y: auto;
         }
         .leaderboard-item {
@@ -71,31 +84,30 @@
         .leaderboard-item:last-child {
             border-bottom: none;
         }
-        .leaderboard-item .name {
-            color: #fff;
-        }
-        .leaderboard-item .score {
-            color: #FACC15; /* Yellow */
-        }
+        .leaderboard-item .name { color: #fff; }
+        .leaderboard-item .score { color: #FACC15; }
     </style>
 </head>
-<body class="bg-purple-900 text-white flex flex-col items-center min-h-screen pt-4 pb-8">
+<!-- MODIFIED: h-screen to fill viewport -->
+<body class="text-white flex flex-col items-center h-screen pt-4 pb-8">
 
     <!-- Game Title -->
-    <h1 class="text-3xl md:text-4xl font-bold mb-4 text-glow-cyan">Space Dodger</h1>
+    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-glow-cyan">Space Dodger</h1>
 
     <!-- Score Display -->
-    <div class="mb-4 text-lg md:text-2xl">
+    <div class="mb-2 text-lg md:text-2xl">
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
 
-    <!-- Game Canvas -->
-    <div class="w-full md:max-w-3xl lg:max-w-4xl aspect-square rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
-        <canvas id="gameCanvas"></canvas>
+    <!-- Game Canvas Container -->
+    <!-- MODIFIED: This container will define the game size -->
+    <div id="game-container" class="w-full flex-1 rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
     </div>
 
     <!-- Mobile Touch Controls -->
-    <div class="md:hidden w-full max-w-lg mt-4 grid grid-cols-2 gap-4 px-4 pb-4">
+    <!-- MODIFIED: Removed max-w-lg, added padding -->
+    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-2">
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
         </button>
@@ -104,13 +116,7 @@
         </button>
     </div>
 
-    <!-- Leaderboard Section -->
-    <div class="leaderboard-container">
-        <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
-        <ol id="leaderboardList" class="leaderboard-list">
-            <!-- Scores will be populated by JavaScript -->
-        </ol>
-    </div>
+    <!-- Leaderboard Section (REMOVED from here) -->
 
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
@@ -131,6 +137,16 @@
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
+
+            <!-- NEW: Leaderboard Section (MOVED here) -->
+            <div id="leaderboard-modal-container" class="leaderboard-container hidden">
+                <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
+                <ol id="leaderboardList" class="leaderboard-list">
+                    <!-- Scores will be populated by JavaScript -->
+                </ol>
+            </div>
+            <!-- END NEW -->
+
         </div>
     </div>
 
@@ -144,7 +160,8 @@
         let canvas, ctx;
         let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, modalImage;
         let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
-        let moveLeftBtn, moveRightBtn;
+        let moveLeftBtn, moveRightBtn, gameContainer;
+        let leaderboardModalContainer; // NEW
 
         // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
@@ -171,109 +188,74 @@
         // --- Firebase Variables ---
         let db, auth, userId, appId;
 
-        // --- MODIFIED: Hybrid Sound System ---
+        // --- Hybrid Sound System ---
         let sounds = {
             music: new Audio('music.mp3'), // Your music file
-            shield: null, // Will be a Tone.js synth
-            hit: null,    // Will be a Tone.js synth
-            gameover: null // Will be a Tone.js synth
+            shield: null, 
+            hit: null,    
+            gameover: null 
         };
         sounds.music.loop = true;
         sounds.music.volume = 0.05; // 5% volume
         let soundInitialized = false;
 
-        // --- NEW: Initialize Tone.js sounds ---
+        // --- Initialize Tone.js sounds ---
         function initSounds() {
-            // Check if Tone is loaded
             if (typeof Tone === 'undefined') {
                 console.warn("Tone.js not loaded. Sound effects will be silent.");
                 return;
             }
-            
-            // Create synth for shield pickup
-            sounds.shield = new Tone.Synth({
-                oscillator: { type: "sine" },
-                envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.2 }
-            }).toDestination();
-            sounds.shield.volume.value = 0; // Full volume
-
-            // Create synth for getting hit
-            sounds.hit = new Tone.NoiseSynth({
-                noise: { type: "white" },
-                envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 }
-            }).toDestination();
-            sounds.hit.volume.value = -10; // A bit quieter
-
-            // Create synth for game over
-            sounds.gameover = new Tone.MonoSynth({
-                oscillator: { type: "sawtooth" },
-                envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.5 }
-            }).toDestination();
+            sounds.shield = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.2 } }).toDestination();
+            sounds.shield.volume.value = 0;
+            sounds.hit = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 } }).toDestination();
+            sounds.hit.volume.value = -10;
+            sounds.gameover = new Tone.MonoSynth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.5 } }).toDestination();
             sounds.gameover.volume.value = -5;
-            
             console.log("Sound effects initialized");
             soundInitialized = true;
         }
 
-        // --- MODIFIED: playSound function ---
+        // --- playSound function ---
         function playSound(sound) {
-            if (!soundInitialized && sound !== 'music') {
-                // Don't play effects if not ready
-                return;
-            }
-
+            if (!soundInitialized && sound !== 'music') return;
             if (sound === 'music') {
                 sounds.music.currentTime = 0;
                 sounds.music.play().catch(e => console.warn("Music play failed:", e.message));
             } 
-            else if (sound === 'shield' && sounds.shield) {
-                sounds.shield.triggerAttackRelease("C5", "8n");
-            } 
-            else if (sound === 'hit' && sounds.hit) {
-                sounds.hit.triggerAttackRelease("16n");
-            } 
-            else if (sound === 'gameover' && sounds.gameover) {
-                sounds.gameover.triggerAttackRelease("C3", "2n");
-            }
+            else if (sound === 'shield' && sounds.shield) sounds.shield.triggerAttackRelease("C5", "8n");
+            else if (sound === 'hit' && sounds.hit) sounds.hit.triggerAttackRelease("16n");
+            else if (sound === 'gameover' && sounds.gameover) sounds.gameover.triggerAttackRelease("C3", "2n");
         }
-        // --- END MODIFICATION ---
         
         // --- Firebase Initialization ---
         async function initFirebase() {
             try {
-                // These global variables are provided by the environment
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
                 const firebaseConfig = JSON.parse(firebaseConfigStr);
-
                 if (!firebaseConfig.apiKey) {
                     console.warn("Firebase config not found. Leaderboard will not work.");
                     return;
                 }
-
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
                 setLogLevel('Debug');
-                
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         console.log("User is signed in:", user.uid);
                         userId = user.uid;
-                        loadLeaderboard();
+                        loadLeaderboard(); // Load leaderboard on auth
                     } else {
                         console.log("User is signed out.");
                         userId = null;
                     }
                 });
-
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-
             } catch (error) {
                 console.error("Firebase Init Error:", error);
             }
@@ -285,27 +267,17 @@
                 console.log("Leaderboard load skipped: DB not ready.");
                 return;
             }
-            
             const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
-            const q = query(leaderboardCol); // Get all scores
-
+            const q = query(leaderboardCol);
             onSnapshot(q, (snapshot) => {
                 let scores = [];
-                snapshot.forEach(doc => {
-                    scores.push(doc.data());
-                });
-
-                const sortedScores = scores
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 10);
-                
+                snapshot.forEach(doc => scores.push(doc.data()));
+                const sortedScores = scores.sort((a, b) => b.score - a.score).slice(0, 10);
                 displayLeaderboard(sortedScores);
-            }, (error) => {
-                console.error("Error loading leaderboard:", error);
-            });
+            }, (error) => console.error("Error loading leaderboard:", error));
         }
 
-        // --- Display Leaderboard ---
+        // --- Display Leaderboard (in modal) ---
         function displayLeaderboard(scores) {
             leaderboardList.innerHTML = ''; // Clear old list
             if (scores.length === 0) {
@@ -339,22 +311,15 @@
                 console.error("Database not ready to submit score.");
                 return;
             }
-
             try {
                 const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
-                await addDoc(leaderboardCol, {
-                    name: playerName,
-                    score: score,
-                    timestamp: new Date()
-                });
-                
+                await addDoc(leaderboardCol, { name: playerName, score: score, timestamp: new Date() });
                 console.log("Score submitted!");
                 playerNameInput.disabled = true;
                 submitScoreBtn.disabled = true;
                 submitScoreBtn.textContent = 'Submitted!';
                 submitScoreBtn.classList.remove('bg-green-500');
                 submitScoreBtn.classList.add('bg-gray-500');
-
             } catch (error) {
                 console.error("Error submitting score:", error);
             }
@@ -362,22 +327,15 @@
 
         // --- Load Images ---
         function loadAllImages() {
-            // Player image
             playerImage.src = playerImageFilename;
             playerImage.onload = () => playerImageLoaded = true;
             playerImage.onerror = () => console.error("Error loading player image");
-
-            // Logo image
             logoImage.src = logoImageFilename;
             logoImage.onload = () => logoImageLoaded = true;
             logoImage.onerror = () => console.error("Error loading logo image");
-
-            // Meteor image
             meteorImage.src = meteorImageFilename;
             meteorImage.onload = () => meteorImageLoaded = true;
             meteorImage.onerror = () => console.error("Error loading meteor image");
-
-            // Octopus image
             octopusImage.src = octopusImageFilename;
             octopusImage.onload = () => octopusImageLoaded = true;
             octopusImage.onerror = () => console.error("Error loading octopus image");
@@ -386,52 +344,66 @@
 
         // --- Game Functions ---
 
-        // Resize canvas
+        // MODIFIED: Resize canvas to non-square
         function resizeCanvas() {
-            const container = canvas.parentElement;
-            const size = container.clientWidth;
+            const container = gameContainer;
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = size * dpr;
-            canvas.height = size * dpr;
-            canvas.style.width = size + 'px';
-            canvas.style.height = size + 'px';
+            
+            // Get CSS size
+            const cssWidth = container.clientWidth;
+            const cssHeight = container.clientHeight;
+
+            // Set internal resolution
+            canvas.width = cssWidth * dpr;
+            canvas.height = cssHeight * dpr;
+
+            // Set display size (redundant, but good practice)
+            canvas.style.width = cssWidth + 'px';
+            canvas.style.height = cssHeight + 'px';
+            
             ctx.scale(dpr, dpr);
             
+            // Recalculate player size/position
             if (player) {
-                const oldSize = player.width / 0.15;
-                const oldXRatio = player.x / oldSize;
-                player.width = size * 0.15;
+                const oldWidth = player.width / 0.1; // old width was 10% of canvas height
+                const oldXRatio = player.x / oldWidth; // old x relative to old width
+                
+                // New size based on new *height*
+                player.width = cssHeight * 0.1; // Player size is 10% of height
                 player.height = player.width;
-                player.speed = size * 0.008;
-                player.x = oldXRatio * size;
-                player.y = size - player.height - 10;
+                player.speed = cssWidth * 0.008; // Speed based on width
+                
+                // Reposition
+                player.x = oldXRatio * cssWidth;
+                player.y = cssHeight - player.height - 10; // 10px from bottom
             }
             
-            initStars(size);
+            initStars(cssWidth, cssHeight);
 
             if (!isGameOver) {
-                ctx.clearRect(0, 0, size, size);
+                ctx.clearRect(0, 0, cssWidth, cssHeight);
                 if(player) drawPlayer();
                 updateAndDrawObstacles();
             }
         }
 
-        // Create player
+        // MODIFIED: Create player for non-square
         function createPlayer() {
-            const size = canvas.parentElement.clientWidth;
-            const playerSize = size * 0.15;
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            const playerSize = cssHeight * 0.1; // 10% of height
             return {
-                x: size / 2 - playerSize / 2,
-                y: size - playerSize - 10,
+                x: cssWidth / 2 - playerSize / 2,
+                y: cssHeight - playerSize - 10, // 10px from bottom
                 width: playerSize,
                 height: playerSize,
-                speed: size * 0.008,
+                speed: cssWidth * 0.008,
                 isShielded: false,
                 invincibilityTimer: 0
             };
         }
 
-        // Draw player
+        // Draw player (unchanged)
         function drawPlayer() {
             if (player.isShielded) {
                 ctx.save();
@@ -448,7 +420,6 @@
                 ctx.stroke();
                 ctx.restore();
             }
-
             if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
                 // Skip drawing to flicker
             } else {
@@ -464,45 +435,43 @@
             }
         }
 
-        // Draw UI
+        // MODIFIED: Draw UI for non-square
         function drawUI() {
-            const size = canvas.parentElement.clientWidth;
-            const lifeSize = size * 0.05;
-            const padding = size * 0.02;
+            const cssHeight = canvas.clientHeight;
+            const lifeSize = cssHeight * 0.05; // 5% of height
+            const padding = cssHeight * 0.02;
             ctx.save();
             if (playerImageLoaded) {
                 ctx.globalAlpha = 0.8;
                 for (let i = 0; i < lives; i++) {
-                    ctx.drawImage(playerImage, padding + i * (lifeSize + padding / 2), size - lifeSize - padding, lifeSize, lifeSize);
+                    ctx.drawImage(playerImage, padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
                 }
                 ctx.globalAlpha = 1.0;
             } else {
                 ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
                 for (let i = 0; i < lives; i++) {
-                    ctx.fillRect(padding + i * (lifeSize + padding / 2), size - lifeSize - padding, lifeSize, lifeSize);
+                    ctx.fillRect(padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
                 }
             }
             ctx.restore();
         }
 
-        // Update player
+        // MODIFIED: Update player for non-square
         function updatePlayer() {
             if (moveLeft) player.x -= player.speed;
             if (moveRight) player.x += player.speed;
-            
-            if(moveLeft || moveRight) {
-                emitThrusterParticles();
-            }
+            if(moveLeft || moveRight) emitThrusterParticles();
 
-            const size = canvas.parentElement.clientWidth;
+            const cssWidth = canvas.clientWidth;
             if (player.x < 0) player.x = 0;
-            if (player.x + player.width > size) player.x = size - player.width;
+            if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
         }
 
-        // Create falling object
+        // MODIFIED: Create falling object for non-square
         function createFallingObject() {
-            const size = canvas.parentElement.clientWidth;
-            const objectSize = Math.random() * (size * 0.08) + (size * 0.03);
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02); // Based on width
             let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
             if (rand < 0.05 && score > 200) {
@@ -513,13 +482,14 @@
                 baseSpeed = gameSpeed * 1.1;
             }
             obstacles.push({
-                x: Math.random() * (size - objectSize), y: -objectSize,
+                x: Math.random() * (cssWidth - objectSize), y: -objectSize,
                 width: objectSize, height: objectSize,
-                speed: Math.random() * 2 + baseSpeed, type: objectType
+                speed: (Math.random() * 2 + baseSpeed) * (cssHeight / 600), // Scale speed by height
+                type: objectType
             });
         }
 
-        // Draw bomb
+        // Draw bomb (unchanged)
         function drawBomb(x, y, radius) {
             ctx.save();
             const centerX = x + radius, centerY = y + radius;
@@ -535,7 +505,7 @@
             ctx.restore();
         }
 
-        // Draw booster
+        // Draw booster (unchanged)
         function drawBooster(x, y, radius) {
             ctx.save();
             const centerX = x + radius, centerY = y + radius;
@@ -549,26 +519,19 @@
             ctx.restore();
         }
 
-        // Update/draw obstacles
+        // MODIFIED: Update/draw obstacles for non-square
         function updateAndDrawObstacles() {
-            const size = canvas.parentElement.clientWidth;
+            const cssHeight = canvas.clientHeight;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += obs.speed;
                 if (obs.type === 'meteor') {
-                    if (meteorImageLoaded) {
-                        ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
-                    } else {
-                        ctx.fillStyle = '#8B4513';
-                        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                    }
-                } else if (obs.type === 'bomb') {
-                    drawBomb(obs.x, obs.y, obs.width / 2);
-                } else if (obs.type === 'booster') {
-                    drawBooster(obs.x, obs.y, obs.width / 2);
-                }
+                    if (meteorImageLoaded) ctx.drawImage(meteorImage, obs.x, obs.Y, obs.width, obs.height);
+                    else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
+                } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
+                else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
 
-                if (obs.y > size) {
+                if (obs.y > cssHeight) {
                     obstacles.splice(i, 1);
                     score += 10;
                     scoreEl.textContent = score;
@@ -577,7 +540,7 @@
             }
         }
 
-        // Check collisions
+        // Check collisions (unchanged)
         function checkCollisions() {
             if (player.invincibilityTimer > 0) return;
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -585,7 +548,6 @@
                 const padding = player.width * 0.15;
                 if (player.x < obs.x + obs.width - padding && player.x + player.width > obs.x + padding &&
                     player.y < obs.y + obs.height - padding && player.y + player.height > obs.y + padding) {
-                    
                     if (obs.type === 'booster') {
                         player.isShielded = true;
                         shieldTimer = SHIELD_DURATION;
@@ -601,27 +563,23 @@
                             lives--;
                             playSound(obs.type === 'bomb' ? 'gameover' : 'hit');
                             emitParticles(player.x + player.width / 2, player.y + player.height / 2, 40, '#FF4500');
-                            
                             obstacles.splice(i, 1);
                             if (lives <= 0) {
                                 gameOver();
                                 break;
-                            } else {
-                                player.invincibilityTimer = 240; // 4 seconds
-                            }
+                            } else player.invincibilityTimer = 240;
                         }
                     }
                 }
             }
         }
 
-        // Game over
+        // MODIFIED: Game over (to show leaderboard)
         function gameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
             playSound('gameover');
-            sounds.music.pause(); // MODIFIED: Stop music
-            
+            sounds.music.pause();
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
             if (octopusImageLoaded) {
@@ -631,14 +589,15 @@
             submitScoreForm.classList.remove('hidden');
             restartButton.classList.remove('hidden');
             restartButton.textContent = 'Play Again';
-            
+            leaderboardModalContainer.classList.remove('hidden'); // NEW: Show leaderboard
             modalBackdrop.classList.remove('hidden');
         }
 
-        // Start/restart game
+        // MODIFIED: Start/restart game
         function initGame() {
-            const size = canvas.parentElement.clientWidth;
-            initStars(size);
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
             particles = [];
@@ -649,11 +608,9 @@
             obstacleSpawnTimer = 0;
             obstacleSpawnInterval = 100;
             shieldTimer = 0;
-            
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
             modalImage.classList.add('hidden');
-            
             playerNameInput.disabled = false;
             playerNameInput.value = '';
             submitScoreBtn.disabled = false;
@@ -661,14 +618,12 @@
             submitScoreBtn.classList.add('bg-green-500');
             submitScoreBtn.classList.remove('bg-gray-500');
             submitScoreForm.classList.add('hidden');
-            
-            // MODIFIED: Start music on game start
+            leaderboardModalContainer.classList.add('hidden'); // NEW: Hide leaderboard
             playSound('music');
-            
             gameLoop();
         }
         
-        // --- Particle Functions ---
+        // --- Particle Functions (unchanged) ---
         function emitParticles(x, y, count, color) {
             for (let i = 0; i < count; i++) {
                 particles.push({
@@ -679,7 +634,6 @@
                 });
             }
         }
-
         function emitThrusterParticles() {
             if (!player) return;
             for (let i = 0; i < 2; i++) {
@@ -692,17 +646,12 @@
                 });
             }
         }
-
         function updateAndDrawParticles() {
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
-
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                } else {
+                p.x += p.vx; p.y += p.vy; p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+                else {
                     ctx.save();
                     ctx.globalAlpha = p.life / 60;
                     ctx.fillStyle = p.color;
@@ -712,37 +661,34 @@
             }
         }
 
-        // --- Starfield Functions ---
-        function createStar(size) {
+        // --- MODIFIED: Starfield Functions (for non-square) ---
+        function createStar(width, height) {
             return {
-                x: Math.random() * size, y: Math.random() * size,
+                x: Math.random() * width, y: Math.random() * height,
                 size: Math.random() * 2 + 1, speed: Math.random() * 0.5 + 0.2
             };
         }
-
-        function initStars(size) {
+        function initStars(width, height) {
             stars = [];
             for (let i = 0; i < 100; i++) {
-                stars.push(createStar(size));
+                stars.push(createStar(width, height));
             }
         }
-
-        function updateAndDrawStars(size) {
+        function updateAndDrawStars(width, height) {
             ctx.save();
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             for (let star of stars) {
                 star.y += star.speed;
-                if (star.y > size) {
+                if (star.y > height) {
                     star.y = 0;
-                    star.x = Math.random() * size;
+                    star.x = Math.random() * width;
                 }
                 ctx.fillRect(star.x, star.y, star.size, star.size);
             }
             ctx.restore();
         }
 
-
-        // Main game loop
+        // --- MODIFIED: Main game loop (for non-square) ---
         function gameLoop() {
             if (isGameOver) return;
             if (player.isShielded) {
@@ -751,18 +697,18 @@
             }
             if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
-            const size = canvas.parentElement.clientWidth;
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
             
-            ctx.fillStyle = '#1A0A2A';
-            ctx.fillRect(0, 0, size, size);
+            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
             
-            updateAndDrawStars(size);
+            updateAndDrawStars(cssWidth, cssHeight);
             
             if (logoImageLoaded) {
                 ctx.save();
                 ctx.globalAlpha = 0.1;
-                const logoSize = size * 0.9;
-                ctx.drawImage(logoImage, (size - logoSize) / 2, (size - logoSize) / 2, logoSize, logoSize);
+                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
+                ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
                 ctx.restore();
             }
             
@@ -774,11 +720,9 @@
             drawUI();
 
             obstacleSpawnTimer++;
-            if (score < 500) {
-                obstacleSpawnInterval = 100;
-            } else {
-                obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
-            }
+            if (score < 500) obstacleSpawnInterval = 100;
+            else obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
+            
             if (obstacleSpawnTimer >= obstacleSpawnInterval) {
                 createFallingObject();
                 obstacleSpawnTimer = 0;
@@ -786,20 +730,19 @@
             animationFrameId = requestAnimationFrame(gameLoop);
         }
         
-        // --- Initial Game Start ---
+        // --- MODIFIED: Initial Game Start ---
         function main() {
             try {
                 modalTitle.textContent = 'Space Dodger';
                 modalScore.textContent = 'Dodge the meteors!';
                 restartButton.textContent = 'Start Game';
                 submitScoreForm.classList.add('hidden');
+                leaderboardModalContainer.classList.add('hidden'); // Hide leaderboard
                 restartButton.classList.remove('hidden');
                 modalBackdrop.classList.remove('hidden');
                 modalImage.classList.add('hidden');
-
                 loadAllImages();
                 initFirebase();
-                
             } catch (error) {
                 console.error("Error in main() function:", error);
                 const modal = document.getElementById('modalBackdrop');
@@ -811,11 +754,12 @@
             }
         }
         
-        // --- Main Startup Function ---
+        // --- MODIFIED: Main Startup Function ---
         function onDomReady() {
             // --- Assign all DOM elements ---
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
+            gameContainer = document.getElementById('game-container'); // NEW
             scoreEl = document.getElementById('score');
             modalBackdrop = document.getElementById('modalBackdrop');
             modalTitle = document.getElementById('modalTitle');
@@ -823,6 +767,7 @@
             restartButton = document.getElementById('restartButton');
             modalImage = document.getElementById('modalImage');
             leaderboardList = document.getElementById('leaderboardList');
+            leaderboardModalContainer = document.getElementById('leaderboard-modal-container'); // NEW
             submitScoreForm = document.getElementById('submitScoreForm');
             playerNameInput = document.getElementById('playerNameInput');
             submitScoreBtn = document.getElementById('submitScoreBtn');
@@ -844,7 +789,6 @@
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
             restartButton.addEventListener('click', () => {
-                // MODIFIED: Initialize sounds on first click
                 if (!soundInitialized && typeof Tone !== 'undefined') {
                     Tone.start().then(() => {
                         console.log("AudioContext started!");
@@ -857,11 +801,11 @@
             });
 
             submitScoreBtn.addEventListener('click', submitScore);
-            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas); // Resize canvas on window resize
 
             // --- Run the main startup logic ---
-            resizeCanvas();
-            initStars(canvas.parentElement.clientWidth);
+            resizeCanvas(); // Initial resize
+            initStars(canvas.clientWidth, canvas.clientHeight); // Initial star render
             main(); 
         }
 
