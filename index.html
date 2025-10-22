@@ -761,15 +761,12 @@
             restartButton.addEventListener('click', () => {
                 try {
                     // --- REMOVED AUTH CHECK ---
-                    // if (!isAuthReady) {
-                    //     console.log("Waiting for auth...");
-                    //     return;
-                    // }
 
                     // If game is already running, this button is "Play Again", so just init.
                     // If this is the first start, soundInitialized will be false.
                     if (soundInitialized) {
-                        initGame(); // Sound is already good to go, just restart.
+                        // MODIFIED: Delay initGame slightly
+                        requestAnimationFrame(initGame); // Wait for next frame
                         return;
                     }
 
@@ -800,19 +797,22 @@
                             .finally(() => {
                                 // Whether it succeeded, failed, or timed out, start the game.
                                 console.log("Audio init finished or timed out. Starting game.");
-                                initGame();
+                                // MODIFIED: Delay initGame slightly
+                                requestAnimationFrame(initGame); // Wait for next frame
                             });
                         
                     } else {
                         // Tone.js isn't loaded.
                         console.warn("Tone.js not loaded. Starting game without sound effects.");
                         soundInitialized = false;
-                        initGame(); // Start the game anyway
+                        // MODIFIED: Delay initGame slightly
+                        requestAnimationFrame(initGame); // Wait for next frame
                     }
                     
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
-                    initGame(); // Failsafe: If anything else breaks, just start the game
+                     // MODIFIED: Delay initGame slightly
+                    requestAnimationFrame(initGame); // Failsafe: Wait for next frame
                 }
             });
             // --- END MODIFICATION ---
@@ -833,5 +833,6 @@
     </script>
 </body>
 </html>
+
 
 
