@@ -126,10 +126,30 @@
         const logoImageFilename = 'logo.png'; // The logo file you're uploading
         // --- END NEW ---
 
-        /* * DELETED:
-         * let animationFrameId;
-         * playerImageLoaded = false; // Fallback to drawing a square
-         */
+        // --- NEW: Load Images ---
+        // Load player image
+        playerImage.src = playerImageFilename;
+        playerImage.onload = function() {
+            playerImageLoaded = true;
+            console.log("Player image loaded successfully!");
+        }
+        playerImage.onerror = function() {
+            playerImageLoaded = false; // Fallback to drawing a square
+            console.error("Error loading player image: " + playerImageFilename);
+        }
+
+        // Load logo image
+        logoImage.src = logoImageFilename;
+        logoImage.onload = function() {
+            logoImageLoaded = true;
+            console.log("Logo image loaded successfully!");
+        }
+        logoImage.onerror = function() {
+            logoImageLoaded = false;
+            console.error("Error loading logo image: " + logoImageFilename);
+        }
+        // --- END NEW ---
+
 
         // --- Game Functions ---
 
@@ -522,33 +542,27 @@
                 obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
             }
             
-            // --- ADDED: Missing obstacle spawn logic ---
             if (obstacleSpawnTimer >= obstacleSpawnInterval) {
-                createFallingObject();
+                createFallingObject(); // --- ADDED: This was missing ---
                 obstacleSpawnTimer = 0;
             }
 
-            // Request the next frame
-            animationFrameId = requestAnimationFrame(gameLoop);
-            // --- END ADDED ---
+            // --- REMOVED image loading logic from here ---
 
-            /* * DELETED: Misplaced logo loading logic
-             * // --- NEW: Load logo image ---
-             * logoImage.src = logoImageFilename;
-             * ... (and so on) ...
-             * // --- END NEW ---
-             */
+            // --- ADDED: Request next frame ---
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
         
-        // --- Event Listeners ---
-        
-        /* * DELETED: Stray code fragment
-         * // Start the application
-         * moveLeft = true;
-         * } else if (e.key === 'ArrowRight' || e.key === 'd') {
-         */
-
+        // --- Event Handlers ---
         function handleKeyDown(e) {
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                moveLeft = true;
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                moveRight = true;
+            }
+        }
+
+        function handleKeyUp(e) {
             if (e.key === 'ArrowLeft' || e.key === 'a') {
                 moveLeft = false;
             } else if (e.key === 'ArrowRight' || e.key === 'd') {
@@ -571,28 +585,26 @@
         // Window resize
         window.addEventListener('resize', resizeCanvas);
 
-        // --- NEW: Load images on script start ---
-        playerImage.src = playerImageFilename;
-        playerImage.onload = function() {
-            playerImageLoaded = true;
-            console.log("Player image loaded successfully!");
-        }
-        playerImage.onerror = function() {
-            playerImageLoaded = false; // Fallback to drawing a square
-            console.error("Error loading player image: " + playerImageFilename);
-        }
-
-        logoImage.src = logoImageFilename;
-        logoImage.onload = function() {
-            logoImageLoaded = true;
-            console.log("Logo image loaded successfully!");
-        }
-        logoImage.onerror = function() {
-            logoImageLoaded = false;
-            console.error("Error loading logo image: " + logoImageFilename);
-        }
-        // --- END NEW ---
-        
         // --- Initial Game Start ---
-        // Show "Start Game" modal
+        // Show "Start Game" modal on first load
+        modalTitle.textContent = 'Space Dodger';
+        modalScore.textContent = 'Dodge the meteors!';
+        restartButton.textContent = 'Start Game';
+        modalBackdrop.classList.remove('hidden');
+        
+        // We don't call initGame() here, we wait for the user to click "Start Game"
+        
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
 
