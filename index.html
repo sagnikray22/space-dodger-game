@@ -201,7 +201,7 @@
                 // Set new size based on new CSS size
                 player.width = size * 0.15; // 15% of CSS canvas width
                 player.height = player.width; // Keep it square
-                player.speed = size * 0.015; // Responsive speed
+                player.speed = size * 0.008; // MODIFIED: Responsive speed (was 0.015)
                 
                 // Set new position
                 player.x = oldXRatio * size;
@@ -226,7 +226,7 @@
                 y: size - playerSize - 10,
                 width: playerSize,
                 height: playerSize,
-                speed: size * 0.015, // Responsive speed
+                speed: size * 0.008, // MODIFIED: Responsive speed (was 0.015)
                 dx: 0, // Horizontal velocity
                 isShielded: false
             };
