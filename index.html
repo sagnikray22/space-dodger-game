@@ -100,13 +100,14 @@
     </div>
 
     <!-- NEW: Hidden YouTube Player for Cat Videos -->
+    <!-- MODIFIED: Added z-[100] to ensure it's on top of everything -->
     <iframe id="catVideoPlayer"
-        class="hidden z-50 absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300"
+        class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300"
         width="320" 
         height="180" 
         src="" 
         frameborder="0" 
-        allow="autoplay; encrypted-media" 
+        allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen>
     </iframe>
 
@@ -172,7 +173,7 @@
         let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, modalImage;
         let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
         let moveLeftBtn, moveRightBtn, gameContainer;
-        let leaderboardModalContainer; // NEW
+        let leaderboardModalContainer, catVideoPlayer; // MODIFIED
 
         // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
@@ -304,19 +305,19 @@
                 // Clear any previous video timeout
                 if (catVideoTimeout) clearTimeout(catVideoTimeout);
 
-                const videoPlayer = document.getElementById('catVideoPlayer');
+                // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned in onDomReady
                 const randomId = catVideoIds[Math.floor(Math.random() * catVideoIds.length)];
                 
                 // Set the video source to autoplay (MUST be muted)
-                videoPlayer.src = `https://www.youtube.com/embed/${randomId}?autoplay=1&mute=1&controls=0`;
+                catVideoPlayer.src = `https://www.youtube.com/embed/${randomId}?autoplay=1&mute=1&controls=0`;
                 
                 // Show the player
-                videoPlayer.classList.remove('hidden');
+                catVideoPlayer.classList.remove('hidden');
 
                 // Set a timer to hide the player after 10 seconds
                 catVideoTimeout = setTimeout(() => {
-                    videoPlayer.classList.add('hidden');
-                    videoPlayer.src = ''; // Stop the video
+                    catVideoPlayer.classList.add('hidden');
+                    catVideoPlayer.src = ''; // Stop the video
                 }, 10000); // 10 seconds
 
             } catch(e) {
@@ -428,8 +429,9 @@
             
             // Recalculate player size/position
             if (player) {
-                const oldWidth = player.width / 0.1; // old width was 10% of canvas height
-                const oldXRatio = player.x / oldWidth; // old x relative to old width
+                // MODIFIED: Use gameContainer dimensions
+                const oldHeight = player.height / 0.1; // old height was 10% of canvas height
+                const oldXRatio = player.x / (oldHeight * (cssWidth / cssHeight)); // approx old width
                 
                 // New size based on new *height*
                 player.width = cssHeight * 0.1; // Player size is 10% of height
@@ -437,7 +439,7 @@
                 player.speed = cssWidth * 0.008; // Speed based on width
                 
                 // Reposition
-                player.x = oldXRatio * cssWidth;
+                player.x = (player.x / (gameContainer.clientWidth || 1)) * cssWidth;
                 player.y = cssHeight - player.height - 10; // 10px from bottom
             }
             
@@ -452,8 +454,9 @@
 
         // MODIFIED: Create player for non-square
         function createPlayer() {
-            const cssWidth = canvas.clientWidth;
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
             const playerSize = cssHeight * 0.1; // 10% of height
             return {
                 x: cssWidth / 2 - playerSize / 2,
@@ -500,7 +503,8 @@
 
         // MODIFIED: Draw UI for non-square
         function drawUI() {
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssHeight = gameContainer.clientHeight;
             const lifeSize = cssHeight * 0.05; // 5% of height
             const padding = cssHeight * 0.02;
             ctx.save();
@@ -525,15 +529,17 @@
             if (moveRight) player.x += player.speed;
             if(moveLeft || moveRight) emitThrusterParticles();
 
-            const cssWidth = canvas.clientWidth;
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
             if (player.x < 0) player.x = 0;
             if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
         }
 
         // MODIFIED: Create falling object for non-square
         function createFallingObject() {
-            const cssWidth = canvas.clientWidth;
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
             const objectSize = Math.random() * (cssWidth * 0.05) + (cssWidth * 0.02); // Based on width
             let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
@@ -584,7 +590,8 @@
 
         // MODIFIED: Update/draw obstacles for non-square
         function updateAndDrawObstacles() {
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssHeight = gameContainer.clientHeight;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += obs.speed;
@@ -646,10 +653,18 @@
             cancelAnimationFrame(animationFrameId);
             
             // NEW: Hide cat video on Game Over
-            const videoPlayer = document.getElementById('catVideoPlayer');
-            videoPlayer.classList.add('hidden');
-            videoPlayer.src = '';
+            // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned
+            catVideoPlayer.classList.add('hidden');
+            catVideoPlayer.src = '';
             if (catVideoTimeout) clearTimeout(catVideoTimeout);
+            
+            // NEW: Play fanfare and stop music
+            playSound('fanfare'); 
+            sounds.music.pause();
+            
+            // NEW: Emit confetti
+            // MODIFIED: Use gameContainer
+            emitConfetti(gameContainer.clientWidth, gameContainer.clientHeight);
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
@@ -666,8 +681,9 @@
 
         // MODIFIED: Start/restart game
         function initGame() {
-            const cssWidth = canvas.clientWidth;
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
             initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
@@ -692,9 +708,9 @@
             leaderboardModalContainer.classList.add('hidden'); // NEW: Hide leaderboard
             
             // NEW: Hide cat video on Restart
-            const videoPlayer = document.getElementById('catVideoPlayer');
-            videoPlayer.classList.add('hidden');
-            videoPlayer.src = '';
+            // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned
+            catVideoPlayer.classList.add('hidden');
+            catVideoPlayer.src = '';
             if (catVideoTimeout) clearTimeout(catVideoTimeout);
             
             playSound('music');
@@ -825,8 +841,9 @@
                 }
             }
 
-            const cssWidth = canvas.clientWidth;
-            const cssHeight = canvas.clientHeight;
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
             
             ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
             
@@ -893,6 +910,7 @@
             submitScoreBtn = document.getElementById('submitScoreBtn');
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
+            catVideoPlayer = document.getElementById('catVideoPlayer'); // NEW
             
             // --- Add all Event Listeners ---
             document.addEventListener('keydown', (e) => {
@@ -925,7 +943,8 @@
 
             // --- Run the main startup logic ---
             resizeCanvas(); // Initial resize
-            initStars(canvas.clientWidth, canvas.clientHeight); // Initial star render
+            // MODIFIED: Use gameContainer
+            initStars(gameContainer.clientWidth, gameContainer.clientHeight); // Initial star render
             main(); 
         }
 
@@ -935,6 +954,4 @@
     </script>
 </body>
 </html>
-
-
 
