@@ -809,7 +809,7 @@
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
             
-            // --- MODIFIED: Simplified and Failsafe Click Handler ---
+            // --- MODIFIED: Ultra-Failsafe Click Handler ---
             restartButton.addEventListener('click', () => {
                 try {
                     // Don't start if the button is still in "Loading..." state
@@ -818,22 +818,50 @@
                         return;
                     }
 
-                    if (!soundInitialized && typeof Tone !== 'undefined') {
-                        // This is the first click. Start the audio context.
-                        Tone.start().then(() => {
-                            console.log("AudioContext started!");
-                            initSounds(); // Define the synths
-                            initGame();   // Start the game
-                        }).catch(e => {
-                            console.error("Tone.start() failed, will run game without sound effects:", e);
-                            soundInitialized = false; // Mark as failed
-                            initGame(); // Start the game anyway
-                        });
-                    } else {
-                        // Audio is already running, or Tone.js failed to load.
-                        // Just start the game.
-                        initGame();
+                    // If game is already running, this button is "Play Again", so just init.
+                    // If this is the first start, soundInitialized will be false.
+                    if (soundInitialized) {
+                        initGame(); // Sound is already good to go, just restart.
+                        return;
                     }
+
+                    // --- First time click: Try to start audio ---
+                    if (typeof Tone !== 'undefined') {
+                        
+                        // Failsafe: Promise.race to prevent Tone.start() from hanging
+                        const startAudio = () => {
+                            return Tone.start().then(() => {
+                                console.log("AudioContext started!");
+                                initSounds(); // Define the synths
+                                soundInitialized = true;
+                            }).catch(e => {
+                                console.error("Tone.start() failed, will run game without sound effects:", e);
+                                soundInitialized = false; // Mark as failed
+                            });
+                        };
+
+                        const audioTimeout = (ms) => {
+                            return new Promise((resolve) => setTimeout(() => {
+                                console.warn(`Tone.start() timed out after ${ms}ms.`);
+                                resolve(); // Just resolve, don't reject
+                            }, ms));
+                        };
+
+                        // Race Tone.start() against a 2-second timer
+                        Promise.race([startAudio(), audioTimeout(2000)])
+                            .finally(() => {
+                                // Whether it succeeded, failed, or timed out, start the game.
+                                console.log("Audio init finished or timed out. Starting game.");
+                                initGame();
+                            });
+                        
+                    } else {
+                        // Tone.js isn't loaded.
+                        console.warn("Tone.js not loaded. Starting game without sound effects.");
+                        soundInitialized = false;
+                        initGame(); // Start the game anyway
+                    }
+                    
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
                     initGame(); // Failsafe: If anything else breaks, just start the game
@@ -857,6 +885,7 @@
     </script>
 </body>
 </html>
+
 
 
 
