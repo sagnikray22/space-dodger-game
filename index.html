@@ -182,7 +182,12 @@
             music: new Audio('music.mp3')
         };
         sounds.music.loop = true; // Make the background music loop
-        sounds.music.volume = 0.3; // Background music should be quieter
+        sounds.music.volume = 0.05; // MODIFIED: Background music even quieter (was 0.1)
+        
+        // NEW: Ensure sound effects are at full volume
+        sounds.shield.volume = 1.0;
+        sounds.hit.volume = 1.0;
+        sounds.gameover.volume = 1.0;
         // --- END MODIFICATION ---
         
         // --- MODIFIED: playSound function ---
@@ -821,4 +826,5 @@
     </script>
 </body>
 </html>
+
 
