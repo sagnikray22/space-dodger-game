@@ -617,7 +617,8 @@
                     obstacles.splice(i, 1);
                     score += 10;
                     scoreEl.textContent = score;
-                    if (score >= 500 && score % 100 === 0) gameSpeed += 0.2;
+                    // This logic is replaced in gameLoop, but harmless
+                    // if (score >= 500 && score % 100 === 0) gameSpeed += 0.2; 
                 }
             }
         }
@@ -848,10 +849,31 @@
             ctx.restore();
         }
 
-        // --- MODIFIED: Main game loop (for non-square) ---
+        // --- *** MAJOR BUG FIX *** ---
+        // --- MODIFIED: Main game loop (for non-square AND fixing invisible meteors) ---
         function gameLoop() {
-            // MODIFIED: Only run game logic if not game over
-            // This allows confetti to keep rendering *after* game over
+            // MODIFIED: Use gameContainer
+            const cssWidth = gameContainer.clientWidth;
+            const cssHeight = gameContainer.clientHeight;
+            
+            // 1. CLEAR THE CANVAS FIRST
+            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
+            
+            // 2. DRAW BACKGROUND STUFF
+            updateAndDrawStars(cssWidth, cssHeight);
+            
+            if (logoImageLoaded) {
+                ctx.save();
+                ctx.globalAlpha = 0.1;
+                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
+                ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
+                ctx.restore();
+            }
+
+            // 3. DRAW PARTICLES
+            updateAndDrawParticles(); // Draw particles (confetti, thrusters, etc)
+
+            // 4. RUN GAME LOGIC *IF* NOT GAME OVER
             if (!isGameOver) { 
                 if (player.isShielded) {
                     shieldTimer--;
@@ -860,7 +882,7 @@
                 if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
                 updatePlayer();
-                updateAndDrawObstacles();
+                updateAndDrawObstacles(); // This will NOW be visible
                 checkCollisions();
 
                 obstacleSpawnTimer++;
@@ -878,33 +900,16 @@
                     createFallingObject();
                     obstacleSpawnTimer = 0;
                 }
-            }
-
-            // MODIFIED: Use gameContainer
-            const cssWidth = gameContainer.clientWidth;
-            const cssHeight = gameContainer.clientHeight;
-            
-            ctx.clearRect(0, 0, cssWidth, cssHeight); // Clear with full size
-            
-            updateAndDrawStars(cssWidth, cssHeight);
-            
-            if (logoImageLoaded) {
-                ctx.save();
-                ctx.globalAlpha = 0.1;
-                const logoSize = Math.min(cssWidth, cssHeight) * 0.9; // Base size on smaller dimension
-                ctx.drawImage(logoImage, (cssWidth - logoSize) / 2, (cssHeight - logoSize) / 2, logoSize, logoSize);
-                ctx.restore();
-            }
-            
-            updateAndDrawParticles(); // Draw particles (confetti, thrusters, etc)
-
-            if (!isGameOver) {
+                
+                // 5. DRAW FOREGROUND STUFF
                 drawPlayer();
                 drawUI();
             }
 
+            // 6. LOOP
             animationFrameId = requestAnimationFrame(gameLoop);
         }
+        // --- *** END MAJOR BUG FIX *** ---
         
         // --- MODIFIED: Initial Game Start ---
         function main() {
@@ -993,5 +998,4 @@
     </script>
 </body>
 </html>
-
 
