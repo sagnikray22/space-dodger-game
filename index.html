@@ -71,6 +71,9 @@
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gray-800 p-8 rounded-lg shadow-xl text-center border-2 border-cyan-300">
+            <!-- NEW: Image for Game Over screen -->
+            <img id="modalImage" src="" alt="Game Over" class="w-32 h-32 mx-auto mb-4 rounded-lg hidden">
+            <!-- END NEW -->
             <h2 id="modalTitle" class="text-3xl font-bold mb-4">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
             <button id="restartButton" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transition duration-200">
@@ -90,6 +93,7 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalScore = document.getElementById('modalScore');
         const restartButton = document.getElementById('restartButton');
+        const modalImage = document.getElementById('modalImage'); // --- NEW ---
         
         // --- Mobile Controls ---
         const moveLeftBtn = document.getElementById('moveLeftBtn');
@@ -130,6 +134,11 @@
         let meteorImage = new Image();
         let meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
+        
+        // --- NEW: Octopus Image ---
+        let octopusImage = new Image();
+        let octopusImageLoaded = false;
+        const octopusImageFilename = 'octopus.png';
         // --- END NEW ---
 
         // --- Load Images ---
@@ -164,6 +173,17 @@
         meteorImage.onerror = function() {
             meteorImageLoaded = false;
             console.error("Error loading meteor image: " + meteorImageFilename);
+        }
+
+        // --- NEW: Load octopus image ---
+        octopusImage.src = octopusImageFilename;
+        octopusImage.onload = function() {
+            octopusImageLoaded = true;
+            console.log("Octopus image loaded successfully!");
+        }
+        octopusImage.onerror = function() {
+            octopusImageLoaded = false;
+            console.error("Error loading octopus image: " + octopusImageFilename);
         }
         // --- END NEW ---
 
@@ -345,11 +365,11 @@
             if (rand < 0.05 && score > 200) { // 5% chance for a booster (after 200 points)
                 objectType = 'booster';
                 baseSpeed = gameSpeed * 1.2; // Boosters fall a little faster
-            } else if (rand < 0.15 && score > 100) { // 10% chance for a bomb (after 100 points)
+            } else if (rand < 0.10 && score > 100) { // MODIFIED: Was 0.15, now 5% chance for bomb
                 objectType = 'bomb';
                 baseSpeed = gameSpeed * 1.1; // Bombs fall a little faster
             }
-            // 85% chance for a meteor
+            // ~90% chance for a meteor
 
             obstacles.push({
                 x: Math.random() * (size - objectSize), // Random x position
@@ -510,7 +530,7 @@
                                 break; // Exit loop
                             } else {
                                 // Player has lives left, grant temporary invincibility
-                                player.invincibilityTimer = 180; // 3 seconds
+                                player.invincibilityTimer = 240; // MODIFIED: 4 seconds (was 180)
                             }
                             // --- END MODIFICATION ---
                         }
@@ -527,6 +547,14 @@
             // Show game over modal
             modalTitle.textContent = 'Game Over!';
             modalScore.textContent = `Your Score: ${score}`;
+            
+            // --- NEW: Show octopus image ---
+            if (octopusImageLoaded) {
+                modalImage.src = octopusImageFilename;
+                modalImage.classList.remove('hidden');
+            }
+            // --- END NEW ---
+            
             modalBackdrop.classList.remove('hidden');
         }
 
@@ -549,6 +577,7 @@
             // Reset UI
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
+            modalImage.classList.add('hidden'); // --- NEW: Hide image on restart ---
             
             // Start the game loop
             gameLoop();
@@ -658,11 +687,13 @@
         modalTitle.textContent = 'Space Dodger';
         modalScore.textContent = 'Dodge the meteors!';
         restartButton.textContent = 'Start Game';
-        modalBackdrop.classList.remove('hidden');
+        modalBackMoving.classList.remove('hidden');
+        modalImage.classList.add('hidden'); // --- NEW: Hide image for Start modal ---
         
         // We don't call initGame() here, we wait for the user to click "Start Game"
         
     </script>
 </body>
 </html>
+
 
