@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <!-- NEW: Load Tone.js for sound -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- NEW: Load Tone.js for sound, added defer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" defer></script>
     <style>
         body {
             font-family: 'Orbitron', sans-serif;
@@ -142,7 +142,7 @@
         // --- NEW: Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, collection, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Canvas & Context Setup ---
         const canvas = document.getElementById('gameCanvas');
@@ -238,6 +238,9 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
+                // NEW: Enable debug logging
+                setLogLevel('Debug');
+                
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         console.log("User is signed in:", user.uid);
@@ -264,7 +267,10 @@
 
         // --- NEW: Load Leaderboard Data ---
         function loadLeaderboard() {
-            if (!db) return;
+            if (!db) {
+                console.log("Leaderboard load skipped: DB not ready.");
+                return;
+            }
             
             const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
             const q = query(leaderboardCol); // Get all scores
@@ -697,20 +703,31 @@
 
         // --- Initial Game Start ---
         function main() {
-            loadAllImages();
-            initFirebase(); // NEW
-            
-            // Show "Start Game" modal
-            modalTitle.textContent = 'Space Dodger';
-            modalScore.textContent = 'Dodge the meteors!';
-            restartButton.textContent = 'Start Game';
-            
-            // NEW: Hide submit form on start
-            submitScoreForm.classList.add('hidden');
-            restartButton.classList.remove('hidden');
-            
-            modalBackdrop.classList.remove('hidden');
-            modalImage.classList.add('hidden');
+            try {
+                loadAllImages();
+                initFirebase(); // NEW
+                
+                // Show "Start Game" modal
+                modalTitle.textContent = 'Space Dodger';
+                modalScore.textContent = 'Dodge the meteors!';
+                restartButton.textContent = 'Start Game';
+                
+                // NEW: Hide submit form on start
+                submitScoreForm.classList.add('hidden');
+                restartButton.classList.remove('hidden');
+                
+                modalBackdrop.classList.remove('hidden');
+                modalImage.classList.add('hidden');
+            } catch (error) {
+                console.error("Error in main() function:", error);
+                // As a fallback, try to show the modal anyway
+                const modal = document.getElementById('modalBackdrop');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    const title = document.getElementById('modalTitle');
+                    if (title) title.textContent = 'Error loading game';
+                }
+            }
         }
         
         main(); // Run the main setup
@@ -718,5 +735,6 @@
     </script>
 </body>
 </html>
+
 
 
