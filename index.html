@@ -704,20 +704,21 @@
         // --- Initial Game Start ---
         function main() {
             try {
-                loadAllImages();
-                initFirebase(); // NEW
-                
-                // Show "Start Game" modal
+                // --- MODIFICATION ---
+                // Try to show the modal FIRST. This is the most important part.
                 modalTitle.textContent = 'Space Dodger';
                 modalScore.textContent = 'Dodge the meteors!';
                 restartButton.textContent = 'Start Game';
-                
-                // NEW: Hide submit form on start
                 submitScoreForm.classList.add('hidden');
                 restartButton.classList.remove('hidden');
-                
                 modalBackdrop.classList.remove('hidden');
                 modalImage.classList.add('hidden');
+                // --- END MODIFICATION ---
+
+                // Now, load everything else in the background.
+                loadAllImages();
+                initFirebase(); // NEW
+                
             } catch (error) {
                 console.error("Error in main() function:", error);
                 // As a fallback, try to show the modal anyway
@@ -735,3 +736,7 @@
     </script>
 </body>
 </html>
+
+
+
+
