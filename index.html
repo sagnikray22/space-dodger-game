@@ -99,17 +99,17 @@
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
 
-    <!-- NEW: Hidden YouTube Player for Cat Videos -->
-    <!-- MODIFIED: Added z-[100] to ensure it's on top of everything -->
-    <iframe id="catVideoPlayer"
+    <!-- REMOVED: YouTube Player -->
+
+    <!-- NEW: Hidden <video> for Cat Memes -->
+    <video id="catMemePlayer"
         class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300"
         width="320" 
         height="180" 
-        src="" 
-        frameborder="0" 
-        allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-    </iframe>
+        src=""
+        controls 
+        preload="none"
+    ></video>
 
     <!-- Game Canvas Container -->
     <!-- MODIFIED: This container will define the game size -->
@@ -133,7 +133,8 @@
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
-            <img id="modalImage" src="" alt="Game Over" class="w-32 h-32 mx-auto mb-4 rounded-lg hidden">
+            <!-- MODIFIED: Replaced octopus img with a video player for the end screen -->
+            <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none"></video>
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
             
@@ -170,10 +171,10 @@
 
         // --- Declare variables, assign them after DOM loads ---
         let canvas, ctx;
-        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, modalImage;
+        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo; // MODIFIED
         let leaderboardList, submitScoreForm, playerNameInput, submitScoreBtn;
         let moveLeftBtn, moveRightBtn, gameContainer;
-        let leaderboardModalContainer, catVideoPlayer; // MODIFIED
+        let leaderboardModalContainer, catMemePlayer; // MODIFIED
 
         // --- Game State Variables ---
         let player, obstacles = [], score = 0, lives = 3;
@@ -182,15 +183,15 @@
         let shieldTimer = 0;
         const SHIELD_DURATION = 300; // 5 seconds
         let moveLeft = false, moveRight = false;
-        let catVideoTimeout; // NEW: To hide the video player
+        let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
 
-        // --- NEW: Add your YouTube video IDs here! ---
-        const catVideoIds = [
-            "SWkMYO9V_-k", // Your first video
-            "vmdrwYv29ZA", // Your second video
-            "L8XbI9aJOXk", // Your third video
-            "IbQgLERakws"  // Your fourth video
-            // Add more of your unlisted YouTube video IDs here, separated by commas
+        // --- NEW: Add your Cat Meme filenames here! ---
+        // 1. Upload your .mp4 files to GitHub
+        // 2. Add the exact filenames to this list
+        const catMemeFiles = [
+            "cat1.mp4", // Example 1
+            "cat2.mp4", // Example 2
+            // "my-funny-cat.mp4"
         ];
         
         // --- AAA Feature Variables ---
@@ -299,31 +300,35 @@
             }
         }
 
-        // --- NEW: Function to play a random cat video ---
-        function playRandomCatVideo() {
+        // --- NEW: Function to play a random cat meme ---
+        function playRandomCatMeme() {
             try {
-                // Clear any previous video timeout
-                if (catVideoTimeout) clearTimeout(catVideoTimeout);
+                if (catMemeFiles.length === 0) return; // Don't do anything if no files are listed
 
-                // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned in onDomReady
-                const randomId = catVideoIds[Math.floor(Math.random() * catVideoIds.length)];
+                // Clear any previous meme timeout
+                if (catMemeTimeout) clearTimeout(catMemeTimeout);
+
+                const randomFile = catMemeFiles[Math.floor(Math.random() * catMemeFiles.length)];
                 
-                // MODIFIED: Removed autoplay=1 and mute=1. Added controls=1.
-                // This is REQUIRED by browsers to allow sound.
-                // The user must now click "play" on the video.
-                catVideoPlayer.src = `https://www.youtube.com/embed/${randomId}?controls=1`;
+                // Set the video source
+                catMemePlayer.src = randomFile;
                 
                 // Show the player
-                catVideoPlayer.classList.remove('hidden');
+                catMemePlayer.classList.remove('hidden');
+
+                // Try to play it (will be silent if autoplay is blocked)
+                catMemePlayer.play().catch(e => {
+                    console.warn("Video autoplay blocked. User must click play.", e.message);
+                });
 
                 // Set a timer to hide the player after 10 seconds
-                catVideoTimeout = setTimeout(() => {
-                    catVideoPlayer.classList.add('hidden');
-                    catVideoPlayer.src = ''; // Stop the video
+                catMemeTimeout = setTimeout(() => {
+                    catMemePlayer.classList.add('hidden');
+                    catMemePlayer.src = ''; // Clear src
                 }, 10000); // 10 seconds
 
             } catch(e) {
-                console.error("Could not play cat video:", e);
+                console.error("Could not play cat meme:", e);
             }
         }
 
@@ -552,11 +557,14 @@
                 objectType = 'bomb';
                 baseSpeed = gameSpeed * 1.1;
             }
+            
+            // --- BUG FIX: Ensure speed is always positive ---
+            const calculatedSpeed = (Math.random() * 2 + baseSpeed);
+            
             obstacles.push({
                 x: Math.random() * (cssWidth - objectSize), y: -objectSize,
                 width: objectSize, height: objectSize,
-                // MODIFIED: Removed faulty height scaling. This fixes the "no objects" bug.
-                speed: (Math.random() * 2 + baseSpeed), 
+                speed: Math.max(1.0, calculatedSpeed), // Failsafe, speed must be at least 1.0
                 type: objectType
             });
         }
@@ -642,7 +650,7 @@
                                 break;
                             } else {
                                 player.invincibilityTimer = 240;
-                                playRandomCatVideo(); // --- NEW: Play video on losing a life ---
+                                playRandomCatMeme(); // --- MODIFIED: Play meme ---
                             }
                         }
                     }
@@ -656,10 +664,9 @@
             cancelAnimationFrame(animationFrameId);
             
             // NEW: Hide cat video on Game Over
-            // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned
-            catVideoPlayer.classList.add('hidden');
-            catVideoPlayer.src = '';
-            if (catVideoTimeout) clearTimeout(catVideoTimeout);
+            catMemePlayer.classList.add('hidden'); // MODIFIED
+            catMemePlayer.src = ''; // MODIFIED
+            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
             
             // NEW: Play fanfare and stop music
             playSound('fanfare'); 
@@ -671,10 +678,18 @@
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
-            if (octopusImageLoaded) {
-                modalImage.src = octopusImageFilename;
-                modalImage.classList.remove('hidden');
+            
+            // MODIFIED: Show cat4.mp4 video
+            try {
+                endScreenVideo.src = 'cat4.mp4';
+                endScreenVideo.classList.remove('hidden');
+                endScreenVideo.play().catch(e => {
+                    console.warn("End screen video autoplay blocked. User must click play.", e.message);
+                });
+            } catch (e) {
+                console.error("Could not load cat4.mp4", e);
             }
+            
             submitScoreForm.classList.remove('hidden');
             restartButton.classList.remove('hidden');
             restartButton.textContent = 'Play Again';
@@ -700,7 +715,10 @@
             shieldTimer = 0;
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
-            modalImage.classList.add('hidden');
+            
+            // MODIFIED: Hide end screen video
+            endScreenVideo.classList.add('hidden');
+        
             playerNameInput.disabled = false;
             playerNameInput.value = '';
             submitScoreBtn.disabled = false;
@@ -711,10 +729,9 @@
             leaderboardModalContainer.classList.add('hidden'); // NEW: Hide leaderboard
             
             // NEW: Hide cat video on Restart
-            // const videoPlayer = document.getElementById('catVideoPlayer'); // Already assigned
-            catVideoPlayer.classList.add('hidden');
-            catVideoPlayer.src = '';
-            if (catVideoTimeout) clearTimeout(catVideoTimeout);
+            catMemePlayer.classList.add('hidden'); // MODIFIED
+            catMemePlayer.src = ''; // MODIFIED
+            if (catMemeTimeout) clearTimeout(catMemeTimeout); // MODIFIED
             
             playSound('music');
             gameLoop();
@@ -880,7 +897,7 @@
                 leaderboardModalContainer.classList.add('hidden'); // Hide leaderboard
                 restartButton.classList.remove('hidden');
                 modalBackdrop.classList.remove('hidden');
-                modalImage.classList.add('hidden');
+                endScreenVideo.classList.add('hidden'); // MODIFIED
                 loadAllImages();
                 initFirebase();
             } catch (error) {
@@ -905,7 +922,7 @@
             modalTitle = document.getElementById('modalTitle');
             modalScore = document.getElementById('modalScore');
             restartButton = document.getElementById('restartButton');
-            modalImage = document.getElementById('modalImage');
+            endScreenVideo = document.getElementById('endScreenVideo'); // MODIFIED
             leaderboardList = document.getElementById('leaderboardList');
             leaderboardModalContainer = document.getElementById('leaderboard-modal-container'); // NEW
             submitScoreForm = document.getElementById('submitScoreForm');
@@ -913,7 +930,7 @@
             submitScoreBtn = document.getElementById('submitScoreBtn');
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
-            catVideoPlayer = document.getElementById('catVideoPlayer'); // NEW
+            catMemePlayer = document.getElementById('catMemePlayer'); // MODIFIED
             
             // --- Add all Event Listeners ---
             document.addEventListener('keydown', (e) => {
@@ -957,5 +974,4 @@
     </script>
 </body>
 </html>
-
 
