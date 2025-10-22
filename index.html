@@ -189,25 +189,26 @@
                 envelope: { attack: 0.01, decay: 0.15, sustain: 0 }
             }).toDestination();
 
-            // --- NEW: Create Music Synth and Loop ---
-            const musicSynth = new Tone.MonoSynth({
-                oscillator: { type: "fmsquare" },
-                envelope: { attack: 0.01, decay: 0.1, release: 0.1 },
-                filter: { Q: 2, type: "lowpass", rollover: -12 },
-                filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 300, octaves: 2 }
+            // --- MODIFIED: Create Music Synth and Loop ---
+            const musicSynth = new Tone.FMSynth({
+                harmonicity: 3,
+                modulationIndex: 10,
+                envelope: { attack: 0.01, decay: 0.2, release: 0.5 },
+                filter: { Q: 1, type: "lowpass", rollover: -12 },
+                filterEnvelope: { attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.2, baseFrequency: 400, octaves: 2 }
             }).toDestination();
-            musicSynth.volume.value = -18; // Make it quiet background music
+            musicSynth.volume.value = -20; // Make it quiet background music
 
-            const notes = ["C2", null, "C2", "G1", "C2", "F2", "C2", null];
+            const notes = ["C2", "Eb2", "G2", "Bb2", "G2", "Eb2"]; // C minor 7 arpeggio
             let noteIndex = 0;
             musicLoop = new Tone.Loop(time => {
                 let note = notes[noteIndex % notes.length];
                 if (note) {
-                    musicSynth.triggerAttackRelease(note, "8n", time);
+                    musicSynth.triggerAttackRelease(note, "4n", time); // Play for a quarter note
                 }
                 noteIndex++;
-            }, "8n"); // Play every 8th note
-            // --- END NEW ---
+            }, "2n"); // Play every half note
+            // --- END MODIFICATION ---
 
             console.log("Sounds initialized");
             soundInitialized = true;
@@ -891,4 +892,5 @@
     </script>
 </body>
 </html>
+
 
