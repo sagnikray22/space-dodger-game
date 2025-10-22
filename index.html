@@ -99,6 +99,7 @@
         let player;
         let obstacles = [];
         let score = 0;
+        let lives = 3; // --- NEW: Player lives ---
         let gameSpeed = 1.0; // Start with slow speed
         let isGameOver = false;
         let animationFrameId;
@@ -125,13 +126,13 @@
         let logoImageLoaded = false;
         const logoImageFilename = 'logo.png'; // The logo file you're uploading
 
-        // --- NEW: Meteor Image ---
+        // --- Meteor Image ---
         let meteorImage = new Image();
         let meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
         // --- END NEW ---
 
-        // --- NEW: Load Images ---
+        // --- Load Images ---
         // Load player image
         playerImage.src = playerImageFilename;
         playerImage.onload = function() {
@@ -154,7 +155,7 @@
             console.error("Error loading logo image: " + logoImageFilename);
         }
 
-        // --- NEW: Load meteor image ---
+        // Load meteor image
         meteorImage.src = meteorImageFilename;
         meteorImage.onload = function() {
             meteorImageLoaded = true;
@@ -228,7 +229,8 @@
                 height: playerSize,
                 speed: size * 0.008, // MODIFIED: Responsive speed (was 0.015)
                 dx: 0, // Horizontal velocity
-                isShielded: false
+                isShielded: false,
+                invincibilityTimer: 0 // --- NEW: For hit flashing ---
             };
         }
 
@@ -257,21 +259,60 @@
             }
             // --- END NEW ---
 
-            // --- MODIFIED: Draw Image ---
-            if (playerImageLoaded) {
-                // --- REVERTED: Draw the image normally, without rotation ---
-                ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-                // --- END REVERT ---
-
+            // --- NEW: Handle Invincibility Flicker ---
+            // Blink every 10 frames
+            if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
+                // On an even "blink" frame, skip drawing the player
             } else {
-                // Fallback if image fails to load: draw a blue square
-                ctx.fillStyle = '#4A90E2'; // Blue
-                ctx.shadowColor = '#81D4FA'; // Light blue glow
-                ctx.shadowBlur = 15;
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-                ctx.shadowBlur = 0; // Reset shadow
+                // Draw player normally
+                if (playerImageLoaded) {
+                    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+                } else {
+                    // Fallback if image fails to load: draw a blue square
+                    ctx.fillStyle = '#4A90E2'; // Blue
+                    ctx.shadowColor = '#81D4FA'; // Light blue glow
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(player.x, player.y, player.width, player.height);
+                    ctx.shadowBlur = 0; // Reset shadow
+                }
             }
-            // --- END MODIFICATION ---
+            // --- END NEW ---
+        }
+
+        // --- NEW: Draw UI (Lives) ---
+        function drawUI() {
+            const size = canvas.parentElement.clientWidth; // Get CSS size
+            const lifeSize = size * 0.05; // Size of the life icon
+            const padding = size * 0.02; // Padding from edge
+            
+            ctx.save();
+            
+            // Draw life icons (mini ships)
+            if (playerImageLoaded) {
+                ctx.globalAlpha = 0.8; // Slightly transparent
+                for (let i = 0; i < lives; i++) {
+                    ctx.drawImage(
+                        playerImage, 
+                        padding + i * (lifeSize + padding / 2), // x position
+                        size - lifeSize - padding, // y position (bottom left)
+                        lifeSize, // width
+                        lifeSize // height
+                    );
+                }
+                ctx.globalAlpha = 1.0;
+            } else {
+                // Fallback: Draw simple green squares
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                for (let i = 0; i < lives; i++) {
+                        ctx.fillRect(
+                        padding + i * (lifeSize + padding / 2), 
+                        size - lifeSize - padding, 
+                        lifeSize, 
+                        lifeSize
+                    );
+                }
+            }
+            ctx.restore();
         }
 
         // Update player's position
@@ -320,47 +361,63 @@
             });
         }
 
-        // --- NEW: Function to draw a Bomb ---
+        // --- MODIFIED: Function to draw a Bomb (classic cartoon style) ---
         function drawBomb(x, y, radius) {
             ctx.save();
             const centerX = x + radius;
             const centerY = y + radius;
 
-            // Black outer shell
+            // Black bomb body
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#111'; // Very dark grey / black
-            ctx.shadowColor = '#FF4500'; // Red-orange glow
-            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#222'; // Dark black/grey
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 10;
             ctx.fill();
 
-            // Red glowing core
+            // Grey 'cap' for the fuse
             ctx.beginPath();
-            ctx.arc(centerX, centerY, radius * 0.4, 0, 2 * Math.PI);
-            ctx.fillStyle = '#FF4500'; // Red-orange
+            ctx.arc(centerX, centerY - radius * 0.8, radius * 0.2, 0, 2 * Math.PI);
+            ctx.fillStyle = '#999'; // Grey
+            ctx.fill();
+
+            // Simple fuse (a line)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius * 0.9);
+            ctx.lineTo(centerX + radius * 0.1, centerY - radius * 1.2);
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Spark
+            ctx.beginPath();
+            ctx.arc(centerX + radius * 0.1, centerY - radius * 1.2, radius * 0.15, 0, 2 * Math.PI);
+            ctx.fillStyle = 'yellow';
+            ctx.shadowColor = 'orange';
+            ctx.shadowBlur = 15;
             ctx.fill();
             
             ctx.restore();
         }
 
-        // --- NEW: Function to draw a Booster ---
+        // --- MODIFIED: Function to draw a Booster (Green Orb) ---
         function drawBooster(x, y, radius) {
             ctx.save();
             const centerX = x + radius;
             const centerY = y + radius;
 
-            // Glowing blue orb
+            // Glowing green orb
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
             
             // Create a radial gradient for a glow effect
             const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(255, 200, 255, 1)'); // Bright pink center
-            gradient.addColorStop(0.5, 'rgba(238, 130, 238, 0.8)'); // Violet
-            gradient.addColorStop(1, 'rgba(186, 85, 211, 0)'); // Fades to medium purple
+            gradient.addColorStop(0, 'rgba(200, 255, 200, 1)'); // Bright green center
+            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)'); // Green
+            gradient.addColorStop(1, 'rgba(0, 150, 0, 0)'); // Fades to dark green
             
             ctx.fillStyle = gradient;
-            ctx.shadowColor = '#FF00FF'; // Magenta glow
+            ctx.shadowColor = '#00FF00'; // Green glow
             ctx.shadowBlur = 20;
             ctx.fill();
             
@@ -413,6 +470,9 @@
 
         // Check for collisions between player and obstacles
         function checkCollisions() {
+            // --- NEW: Check for invincibility ---
+            if (player.invincibilityTimer > 0) return;
+
             // Use a reverse loop so we can safely remove items
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
@@ -439,11 +499,20 @@
                         if (player.isShielded) {
                             // Shield protected the player!
                             obstacles.splice(i, 1); // Destroy the obstacle
-                            // Optional: Add a "shield hit" sound or visual
+                            player.isShielded = false; // --- NEW: Shield breaks on hit ---
                         } else {
-                            // No shield, game over
-                            gameOver();
-                            break; // Exit the loop
+                            // --- MODIFIED: Lose a life ---
+                            lives--;
+                            obstacles.splice(i, 1); // Destroy the obstacle
+                            
+                            if (lives <= 0) {
+                                gameOver();
+                                break; // Exit loop
+                            } else {
+                                // Player has lives left, grant temporary invincibility
+                                player.invincibilityTimer = 180; // 3 seconds
+                            }
+                            // --- END MODIFICATION ---
                         }
                     }
                 }
@@ -470,6 +539,7 @@
             player = createPlayer();
             obstacles = [];
             score = 0;
+            lives = 3; // --- NEW: Reset lives ---
             gameSpeed = 1.0; // Reset base speed
             isGameOver = false;
             obstacleSpawnTimer = 0;
@@ -488,12 +558,17 @@
         function gameLoop() {
             if (isGameOver) return;
 
-            // --- NEW: Shield Timer Countdown ---
+            // --- Shield Timer Countdown ---
             if (player.isShielded) {
                 shieldTimer--;
                 if (shieldTimer <= 0) {
                     player.isShielded = false;
                 }
+            }
+
+            // --- NEW: Invincibility Timer Countdown ---
+            if (player.invincibilityTimer > 0) {
+                player.invincibilityTimer--;
             }
             // --- END NEW ---
 
@@ -523,6 +598,9 @@
             // Check for collisions
             checkCollisions();
 
+            // --- NEW: Draw UI on top ---
+            drawUI();
+
             // --- Spawn new obstacles based on difficulty ramp ---
             obstacleSpawnTimer++;
 
@@ -535,11 +613,9 @@
             }
             
             if (obstacleSpawnTimer >= obstacleSpawnInterval) {
-                createFallingObject(); // --- ADDED: This was missing ---
+                createFallingObject(); 
                 obstacleSpawnTimer = 0;
             }
-
-            // --- REMOVED image loading logic from here ---
 
             // --- ADDED: Request next frame ---
             animationFrameId = requestAnimationFrame(gameLoop);
