@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- This tag is CRUCIAL for mobile responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Space Dodger</title>
+    <style>
+        /* Basic reset and page styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevents scrollbars */
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* Style for the game canvas */
+        canvas {
+            display: block;
+            background-color: #0c0c1e; /* Dark space blue */
+            border-radius: 8px;
+            /* JS will control the size, but this is a fallback */
+            width: 100%; 
+            max-width: 600px;
+            height: 90%;
+            max-height: 800px;
+        }
+
+        /* UI elements for score and game over */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px #fff;
+            z-index: 10;
+        }
+
+        /* Game Over message box */
+        #game-over-screen {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            z-index: 20;
+            border: 1px solid #fff;
+        }
+
+        #game-over-screen h1 {
+            margin: 0 0 10px 0;
+            color: #ff4141; /* Red for game over */
+        }
+
+        #game-over-screen p {
+            margin: 0 0 20px 0;
+            font-size: 1.2rem;
+        }
+
+        /* Restart button styling */
+        #restart-button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        #restart-button:hover {
+            background-color: #357abd;
+        }
+
+        #restart-button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- UI Elements -->
+    <div id="ui-container">
+        Score: <span id="score">0</span>
+    </div>
+
+    <div id="game-over-screen">
+        <h1>Game Over</h1>
+        <p>Your final score: <span id="final-score">0</span></p>
+        <button id="restart-button">Restart Game</button>
+    </div>
+
+    <!-- The Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- Get DOM Elements ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+
+        // --- Game State ---
+        let player, obstacles, score, isGameOver, gameSpeed;
+        let keys = {};
+        
+        // --- Player (Spaceship) ---
+        // We define the player as an object
+        function createPlayer() {
+            return {
+                width: 30,  // Width of the ship
+                height: 40, // Height of the ship
+                x: canvas.width / 2 - 15, // Centered horizontally
+                y: canvas.height - 60, // Near the bottom
+                speed: 7,
+                // We create a Path2D object for the ship shape.
+                // This is how we draw a custom shape instead of using an image.
+                shape: new Path2D(
+                    "M15 0 L0 40 L15 30 L30 40 Z" // A simple rocket/arrow shape
+                )
+            };
+        }
+
+        function drawPlayer() {
+            ctx.save(); // Save the current canvas state
+            ctx.translate(player.x, player.y); // Move canvas origin to player's position
+            ctx.fillStyle = '#00ffff'; // Cyan color
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.fill(player.shape); // Fill the pre-defined shape
+            ctx.restore(); // Restore the canvas state
+        }
+
+        // --- Obstacles (Asteroids) ---
+        function createObstacle() {
+            const size = Math.random() * 30 + 15; // Random size (15 to 45)
+            const x = Math.random() * (canvas.width - size); // Random x position
+            obstacles.push({
+                x: x,
+                y: -size, // Start above the screen
+                width: size,
+                height: size,
+                speed: Math.random() * 2 + gameSpeed // Random speed based on game speed
+            });
+        }
+
+        // NEW function to draw a meteor
+        function drawMeteor(x, y, radius) {
+            ctx.save();
+            ctx.beginPath();
+            
+            // Center of the meteor
+            const centerX = x + radius;
+            const centerY = y + radius;
+            
+            ctx.moveTo(centerX + radius, centerY);
+
+            // Draw a jagged, irregular circle
+            const segments = 10;
+            for (let i = 1; i <= segments; i++) {
+                const angle = (i / segments) * 2 * Math.PI;
+                // Vary the radius slightly for each point (between 80% and 120%)
+                const newRadius = radius * (0.8 + Math.random() * 0.4); 
+                ctx.lineTo(centerX + newRadius * Math.cos(angle), centerY + newRadius * Math.sin(angle));
+            }
+            ctx.closePath();
+
+            // Style the meteor
+            ctx.fillStyle = '#8B4513'; // SaddleBrown (rocky color)
+            ctx.shadowColor = '#A0522D'; // Sienna (shadow/glow)
+            ctx.shadowBlur = 10;
+            ctx.fill();
+
+            // Add a simple crater
+            ctx.beginPath();
+            ctx.arc(centerX + radius * 0.2, centerY - radius * 0.1, radius * 0.3, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Dark shadow for crater
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+
+        function updateAndDrawObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += obs.speed; // Move obstacle down
+
+                // --- MODIFIED DRAWING ---
+                // Draw the obstacle as a meteor
+                // obs.width and obs.height are the same (size), so radius is size / 2
+                drawMeteor(obs.x, obs.y, obs.width / 2);
+                // --- END MODIFICATION ---
+
+                // Remove obstacle if it's off-screen
+                if (obs.y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score += 10; // Add to score for dodging
+                    scoreEl.textContent = score;
+
+                    // Increase game speed every 100 points, ONLY AFTER 500
+                    if (score >= 500 && score % 100 === 0) {
+                        gameSpeed += 0.2; // Slowly increase speed
+                    }
+                }
+            }
+        }
+
+        // --- Collision Detection ---
+        function checkCollisions() {
+            for (let obs of obstacles) {
+                // Simple AABB (Axis-Aligned Bounding Box) collision check
+                if (
+                    player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y
+                ) {
+                    isGameOver = true; // Set game over flag
+                }
+            }
+        }
+
+        // --- Game Controls ---
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Touch
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch, { passive: true });
+        
+        function handleTouch(e) {
+            if (isGameOver) return;
+            // Get the position of the first touch
+            let touchX = e.touches[0].clientX;
+            // Get the position of the canvas on the screen
+            let canvasRect = canvas.getBoundingClientRect();
+            // Calculate the touch position *relative* to the canvas
+            let relativeTouchX = touchX - canvasRect.left;
+            
+            // Move player to the touch position
+            player.x = relativeTouchX - player.width / 2;
+            
+            // Keep player within bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+        }
+        
+        function updatePlayerPosition() {
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] || keys['d']) {
+                player.x += player.speed;
+            }
+
+            // Keep player within bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+        }
+
+        // --- Game Loop ---
+        let obstacleSpawnTimer = 0;
+        let obstacleSpawnInterval = 60; // Initial spawn rate (in frames)
+
+        function gameLoop() {
+            if (isGameOver) {
+                // Show game over screen
+                finalScoreEl.textContent = score;
+                gameOverScreen.style.display = 'block';
+                return; // Stop the loop
+            }
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw player
+            updatePlayerPosition();
+            drawPlayer();
+
+            // Update and draw obstacles
+            updateAndDrawObstacles();
+
+            // Check for collisions
+            checkCollisions();
+
+            // Spawn new obstacles
+            obstacleSpawnTimer++;
+
+            // Adjust spawn rate based on score
+            if (score < 500) {
+                obstacleSpawnInterval = 70; // Constant slow spawn rate
+            } else {
+                // After 500, make obstacles spawn faster as game speed increases
+                // We start from 70 and slowly decrease.
+                // The (gameSpeed - 1.0) ensures it only decreases *after* gameSpeed starts increasing.
+                obstacleSpawnInterval = Math.max(20, 70 - (gameSpeed - 1.0) * 10);
+            }
+            
+            if (obstacleSpawnTimer >= obstacleSpawnInterval) {
+                createObstacle();
+                obstacleSpawnTimer = 0;
+                // Make obstacles spawn faster as game speed increases
+                /* MOVED this logic up
+                obstacleSpawnInterval = Math.max(20, 60 - gameSpeed * 5); 
+                */
+            }
+
+            // Request the next frame
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Game Initialization ---
+        function initGame() {
+            // Set canvas size
+            // We get the container's size to make it responsive
+            const container = canvas.parentElement;
+            // Respect max-width from CSS
+            const maxWidth = 600; 
+            const maxHeight = 800;
+            
+            // Calculate size based on window, but cap at max
+            let newWidth = Math.min(container.clientWidth * 0.95, maxWidth);
+            let newHeight = Math.min(container.clientHeight * 0.9, maxHeight);
+
+            // Ensure we're not wider than the viewport on small screens
+            if (window.innerWidth < newWidth) {
+                newWidth = window.innerWidth * 0.95;
+            }
+            
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            // Initialize game variables
+            player = createPlayer();
+            obstacles = [];
+            score = 0;
+            gameSpeed = 1.0; // Reduced base speed from 2.0
+            isGameOver = false;
+            obstacleSpawnTimer = 0;
+            obstacleSpawnInterval = 70; // Set initial spawn rate to be slower
+            
+            // Reset UI
+            scoreEl.textContent = '0';
+            gameOverScreen.style.display = 'none';
+        }
+        
+        function startGame() {
+            initGame();
+            gameLoop(); // Start the game loop
+        }
+
+        // --- Event Listeners ---
+        restartButton.addEventListener('click', startGame);
+        
+        // Adjust canvas size on window resize
+        window.addEventListener('resize', () => {
+            if (!isGameOver) {
+                initGame(); // Re-initialize game on resize to adjust
+            }
+        });
+
+        // --- Start the game ---
+        startGame();
+
+    </script>
+</body>
+</html>
+
+
+
