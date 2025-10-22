@@ -56,8 +56,14 @@
             font-family: Arial, sans-serif;
             color: #cbd5e1;
         }
-        .leaderboard-container { display: none; }
-        .leaderboard-list { display: none; }
+        .leaderboard-entry {
+            background: linear-gradient(to right, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.1));
+            border-left: 3px solid #a78bfa;
+        }
+        .leaderboard-entry.top-3 {
+            background: linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+            border-left: 3px solid #fbbf24;
+        }
     </style>
 </head>
 <body class="text-white flex flex-col items-center h-screen pt-4 pb-12">
@@ -113,7 +119,25 @@
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6 text-subtitle">Your Score: 0</p>
             
-            <div id="submitScoreForm" class="hidden"></div>
+            <!-- Submit Score Form -->
+            <div id="submitScoreForm" class="mb-6 hidden">
+                <input 
+                    type="text" 
+                    id="playerNameInput" 
+                    placeholder="Enter your name" 
+                    maxlength="20"
+                    class="bg-gray-700 text-white px-4 py-2 rounded-lg w-full mb-3 border-2 border-purple-400 focus:border-cyan-300 focus:outline-none"
+                />
+                <button id="submitScoreBtn" class="bg-green-500 text-white font-bold py-2 px-6 rounded-lg text-lg transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50 w-full mb-2">
+                    Submit Score
+                </button>
+            </div>
+
+            <!-- Leaderboard -->
+            <div id="leaderboardContainer" class="mb-6 hidden">
+                <h3 class="text-2xl font-bold mb-4 text-cyan-300">🏆 Top 10 High Scores</h3>
+                <div id="leaderboardList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
 
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
@@ -132,6 +156,7 @@
         let moveLeftBtn, moveRightBtn, gameContainer;
         let catMemePlayer;
         let shieldVideoPlayer;
+        let submitScoreForm, playerNameInput, submitScoreBtn, leaderboardContainer, leaderboardList;
  
         let player, obstacles = [], score = 0, lives = 3;
         let gameSpeed = 1.0, isGameOver = false, animationFrameId;
@@ -486,6 +511,94 @@
             }
         }
 
+        // Leaderboard Functions
+        async function loadLeaderboard() {
+            try {
+                const result = await window.storage.list('score:', true);
+                if (!result || !result.keys) return [];
+                
+                const scores = [];
+                for (const key of result.keys) {
+                    try {
+                        const data = await window.storage.get(key, true);
+                        if (data && data.value) {
+                            const scoreData = JSON.parse(data.value);
+                            scores.push(scoreData);
+                        }
+                    } catch (e) {
+                        console.error('Error loading score:', e);
+                    }
+                }
+                
+                // Sort by score descending
+                scores.sort((a, b) => b.score - a.score);
+                return scores.slice(0, 10); // Top 10
+            } catch (e) {
+                console.error('Error loading leaderboard:', e);
+                return [];
+            }
+        }
+
+        async function submitScore() {
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('Please enter your name!');
+                return;
+            }
+
+            try {
+                const scoreId = 'score:' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const scoreData = {
+                    name: playerName,
+                    score: score,
+                    date: new Date().toISOString()
+                };
+
+                await window.storage.set(scoreId, JSON.stringify(scoreData), true);
+                
+                // Hide submit form, show leaderboard
+                submitScoreForm.classList.add('hidden');
+                await displayLeaderboard();
+                
+            } catch (e) {
+                console.error('Error submitting score:', e);
+                alert('Failed to submit score. Please try again.');
+            }
+        }
+
+        async function displayLeaderboard() {
+            try {
+                const scores = await loadLeaderboard();
+                leaderboardContainer.classList.remove('hidden');
+                
+                if (scores.length === 0) {
+                    leaderboardList.innerHTML = '<p class="text-gray-400">No scores yet. Be the first!</p>';
+                    return;
+                }
+
+                leaderboardList.innerHTML = scores.map((entry, index) => {
+                    const rank = index + 1;
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+                    const isTopThree = rank <= 3;
+                    
+                    return `
+                        <div class="leaderboard-entry ${isTopThree ? 'top-3' : ''} p-3 rounded-lg flex justify-between items-center">
+                            <span class="font-bold text-lg">${medal} ${entry.name}</span>
+                            <span class="text-yellow-300 font-bold">${entry.score}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (e) {
+                console.error('Error displaying leaderboard:', e);
+            }
+        }
+
+        function checkIfHighScore(currentScore) {
+            // Always allow score submission for now
+            return true;
+        }
+
         function gameOver() {
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
@@ -505,6 +618,16 @@
             
             modalTitle.textContent = 'Game Over!';
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
+            
+            // Check if it's a high score and show submit form
+            if (checkIfHighScore(score)) {
+                submitScoreForm.classList.remove('hidden');
+                playerNameInput.value = '';
+                leaderboardContainer.classList.add('hidden');
+            } else {
+                submitScoreForm.classList.add('hidden');
+                displayLeaderboard();
+            }
             
             try {
                 if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout);
@@ -754,6 +877,11 @@
             moveRightBtn = document.getElementById('moveRightBtn');
             catMemePlayer = document.getElementById('catMemePlayer');
             shieldVideoPlayer = document.getElementById('shieldVideoPlayer');
+            submitScoreForm = document.getElementById('submitScoreForm');
+            playerNameInput = document.getElementById('playerNameInput');
+            submitScoreBtn = document.getElementById('submitScoreBtn');
+            leaderboardContainer = document.getElementById('leaderboardContainer');
+            leaderboardList = document.getElementById('leaderboardList');
             
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
@@ -767,6 +895,8 @@
             moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
+            
+            submitScoreBtn.addEventListener('click', submitScore);
             
             restartButton.addEventListener('click', () => {
                 try {
