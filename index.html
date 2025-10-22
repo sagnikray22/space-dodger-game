@@ -115,15 +115,20 @@
         let moveLeft = false;
         let moveRight = false;
         
-        // --- NEW: Player Image ---
+        // --- Player Image ---
         let playerImage = new Image();
         let playerImageLoaded = false;
         const playerImageFilename = 'spaceship.png'; // The file you uploaded to GitHub
 
-        // --- NEW: Logo Image ---
+        // --- Logo Image ---
         let logoImage = new Image();
         let logoImageLoaded = false;
         const logoImageFilename = 'logo.png'; // The logo file you're uploading
+
+        // --- NEW: Meteor Image ---
+        let meteorImage = new Image();
+        let meteorImageLoaded = false;
+        const meteorImageFilename = 'meteor.png';
         // --- END NEW ---
 
         // --- NEW: Load Images ---
@@ -147,6 +152,17 @@
         logoImage.onerror = function() {
             logoImageLoaded = false;
             console.error("Error loading logo image: " + logoImageFilename);
+        }
+
+        // --- NEW: Load meteor image ---
+        meteorImage.src = meteorImageFilename;
+        meteorImage.onload = function() {
+            meteorImageLoaded = true;
+            console.log("Meteor image loaded successfully!");
+        }
+        meteorImage.onerror = function() {
+            meteorImageLoaded = false;
+            console.error("Error loading meteor image: " + meteorImageFilename);
         }
         // --- END NEW ---
 
@@ -352,40 +368,8 @@
         }
 
 
-        // Function to draw a meteor
-        function drawMeteor(x, y, radius) {
-            ctx.save();
-            ctx.beginPath();
-            
-            // Center of the meteor
-            const centerX = x + radius;
-            const centerY = y + radius;
-            
-            ctx.moveTo(centerX + radius, centerY);
+        // --- DELETED: The old drawMeteor function ---
 
-            // Draw a jagged, irregular circle
-            const segments = 10;
-            for (let i = 1; i <= segments; i++) {
-                const angle = (i / segments) * 2 * Math.PI;
-                const newRadius = radius * (0.8 + Math.random() * 0.4); 
-                ctx.lineTo(centerX + newRadius * Math.cos(angle), centerY + newRadius * Math.sin(angle));
-            }
-            ctx.closePath();
-
-            // Style the meteor
-            ctx.fillStyle = '#8B4513'; // SaddleBrown (rocky color)
-            ctx.shadowColor = '#A0522D'; // Sienna (shadow/glow)
-            ctx.shadowBlur = 10;
-            ctx.fill();
-
-            // Add a simple crater
-            ctx.beginPath();
-            ctx.arc(centerX + radius * 0.2, centerY - radius * 0.1, radius * 0.3, 0, 2 * Math.PI);
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Dark shadow for crater
-            ctx.fill();
-            
-            ctx.restore();
-        }
 
         // Update and draw all obstacles
         function updateAndDrawObstacles() {
@@ -395,13 +379,21 @@
                 obs.y += obs.speed; // Move obstacle down
 
                 // Draw the object based on its type
+                // --- MODIFIED: Draw meteor.png ---
                 if (obs.type === 'meteor') {
-                    drawMeteor(obs.x, obs.y, obs.width / 2);
+                    if (meteorImageLoaded) {
+                        ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
+                    } else {
+                        // Fallback if image fails: draw a simple brown square
+                        ctx.fillStyle = '#8B4513'; // SaddleBrown
+                        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    }
                 } else if (obs.type === 'bomb') {
                     drawBomb(obs.x, obs.y, obs.width / 2);
                 } else if (obs.type === 'booster') {
                     drawBooster(obs.x, obs.y, obs.width / 2);
                 }
+                // --- END MODIFICATION ---
 
 
                 // Remove obstacle if it's off-screen
@@ -516,7 +508,7 @@
             if (logoImageLoaded) {
                 ctx.save();
                 ctx.globalAlpha = 0.1; // 10% opacity
-                const logoSize = size * 0.6; // Logo will be 60% of canvas width
+                const logoSize = size * 0.9; // MODIFIED: Was 0.6 (60%), now 90%
                 const x = (size - logoSize) / 2;
                 const y = (size - logoSize) / 2;
                 ctx.drawImage(logoImage, x, y, logoSize, logoSize);
@@ -597,14 +589,4 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
