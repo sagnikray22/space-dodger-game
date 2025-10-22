@@ -184,6 +184,7 @@
         const SHIELD_DURATION = 300; // 5 seconds
         let moveLeft = false, moveRight = false;
         let catMemeTimeout; // MODIFIED: Renamed from catVideoTimeout
+        let endScreenVideoTimeout; // NEW: Timer for end screen video
 
         // --- NEW: Add your Cat Meme filenames here! ---
         // 1. Upload your .mp4 files to GitHub
@@ -681,11 +682,20 @@
             
             // MODIFIED: Show cat4.mp4 video
             try {
+                if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear previous
                 endScreenVideo.src = 'cat4.mp4';
                 endScreenVideo.classList.remove('hidden');
                 endScreenVideo.play().catch(e => {
                     console.warn("End screen video autoplay blocked. User must click play.", e.message);
                 });
+                
+                // --- NEW: Hide video after 5 seconds ---
+                endScreenVideoTimeout = setTimeout(() => {
+                    endScreenVideo.classList.add('hidden');
+                    endScreenVideo.src = '';
+                }, 5000); // 5 seconds
+                // --- END NEW ---
+
             } catch (e) {
                 console.error("Could not load cat4.mp4", e);
             }
@@ -718,6 +728,8 @@
             
             // MODIFIED: Hide end screen video
             endScreenVideo.classList.add('hidden');
+            endScreenVideo.src = ''; // Stop it from playing
+            if (endScreenVideoTimeout) clearTimeout(endScreenVideoTimeout); // Clear timer
         
             playerNameInput.disabled = false;
             playerNameInput.value = '';
