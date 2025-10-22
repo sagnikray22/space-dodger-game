@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+let canvas, ctx;
+        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo;
+        let moveLeftBtn, moveRightBtn, shootBtn, gameContainer;
+        let catMemePlayer;
+        let shieldVideoPlayer;<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -99,9 +103,12 @@
     </div>
 
     <!-- Mobile Touch Controls -->
-    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-4">
+    <div class="md:hidden w-full mt-2 grid grid-cols-3 gap-4 px-4 pb-4">
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
+        </button>
+        <button id="shootBtn" class="bg-gradient-to-b from-orange-600 to-orange-800 border-2 border-yellow-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-orange-500/50 active:shadow-none">
+            🚀 Shoot
         </button>
         <button id="moveRightBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             Right &rarr;
@@ -351,6 +358,8 @@
             const lifeSize = cssHeight * 0.05;
             const padding = cssHeight * 0.02;
             ctx.save();
+            
+            // Draw lives
             if (playerImageLoaded) {
                 ctx.globalAlpha = 0.8;
                 for (let i = 0; i < lives; i++) {
@@ -363,6 +372,38 @@
                     ctx.fillRect(padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
                 }
             }
+            
+            // Draw missile count
+            const missileY = cssHeight - lifeSize * 2 - padding * 2.5;
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.9)';
+            ctx.font = `${lifeSize * 0.7}px Orbitron`;
+            ctx.textAlign = 'left';
+            ctx.fillText('🚀', padding, missileY);
+            ctx.fillStyle = '#FFA500';
+            ctx.fillText(` x${missileCount}`, padding + lifeSize * 0.8, missileY);
+            
+            // Draw dodge progress bar for next missile
+            if (missileCount < maxMissiles) {
+                const barWidth = lifeSize * 3;
+                const barHeight = lifeSize * 0.2;
+                const barX = padding;
+                const barY = missileY + lifeSize * 0.5;
+                const progress = dodgeCount / missilesNeededToRecharge;
+                
+                // Background
+                ctx.fillStyle = 'rgba(50, 50, 50, 0.7)';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                
+                // Progress
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+                
+                // Border
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+            
             ctx.restore();
         }
 
@@ -376,6 +417,73 @@
             if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
         }
 
+        // NEW: Shoot missile
+        function shootMissile() {
+            if (missileCount > 0 && !isGameOver) {
+                missileCount--;
+                const cssHeight = gameContainer.clientHeight;
+                missiles.push({
+                    x: player.x + player.width / 2 - player.width * 0.1,
+                    y: player.y,
+                    width: player.width * 0.2,
+                    height: player.height * 0.4,
+                    speed: 8
+                });
+                playSound('shield'); // Reuse shield sound for shooting
+                emitParticles(player.x + player.width / 2, player.y, 10, '#FF6600');
+            }
+        }
+
+        // NEW: Update and draw missiles
+        function updateAndDrawMissiles() {
+            const cssHeight = gameContainer.clientHeight;
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                let missile = missiles[i];
+                missile.y -= missile.speed;
+                
+                // Draw missile
+                ctx.save();
+                ctx.fillStyle = '#FF6600';
+                ctx.shadowColor = '#FF6600';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
+                // Missile tip
+                ctx.fillStyle = '#FFFF00';
+                ctx.beginPath();
+                ctx.moveTo(missile.x, missile.y);
+                ctx.lineTo(missile.x + missile.width / 2, missile.y - missile.height * 0.3);
+                ctx.lineTo(missile.x + missile.width, missile.y);
+                ctx.fill();
+                ctx.restore();
+                
+                // Remove if off screen
+                if (missile.y < -missile.height) {
+                    missiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Check collision with obstacles
+                for (let j = obstacles.length - 1; j >= 0; j--) {
+                    let obs = obstacles[j];
+                    if (obs.type === 'meteor' || obs.type === 'bomb') {
+                        if (missile.x < obs.x + obs.width &&
+                            missile.x + missile.width > obs.x &&
+                            missile.y < obs.y + obs.height &&
+                            missile.y + missile.height > obs.y) {
+                            // Hit!
+                            obstacles.splice(j, 1);
+                            missiles.splice(i, 1);
+                            score += 25; // Bonus for shooting
+                            scoreEl.textContent = score;
+                            playSound('hit');
+                            emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 40, '#FF6600');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         function createFallingObject() {
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
@@ -383,9 +491,15 @@
             let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
             if (rand < 0.05 && score > 200) {
+                objectType = 'speedBoost';
+                baseSpeed = gameSpeed * 1.2;
+            } else if (rand < 0.08 && score > 150) {
+                objectType = 'missileReload';
+                baseSpeed = gameSpeed * 1.1;
+            } else if (rand < 0.13 && score > 100) {
                 objectType = 'booster';
                 baseSpeed = gameSpeed * 1.2;
-            } else if (rand < 0.10 && score > 100) {
+            } else if (rand < 0.18 && score > 100) {
                 objectType = 'bomb';
                 baseSpeed = gameSpeed * 1.1;
             }
@@ -428,6 +542,46 @@
             ctx.restore();
         }
 
+        // NEW: Draw Speed Boost (Blue/Cyan powerup)
+        function drawSpeedBoost(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(100, 200, 255, 1)');
+            gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = '#00BFFF'; ctx.shadowBlur = 20; ctx.fill();
+            // Draw lightning symbol
+            ctx.fillStyle = 'white';
+            ctx.font = `${radius * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⚡', centerX, centerY);
+            ctx.restore();
+        }
+
+        // NEW: Draw Missile Reload (Yellow/Orange powerup)
+        function drawMissileReload(x, y, radius) {
+            ctx.save();
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(255, 200, 100, 1)');
+            gradient.addColorStop(0.5, 'rgba(255, 150, 0, 0.8)');
+            gradient.addColorStop(1, 'rgba(200, 100, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = '#FFA500'; ctx.shadowBlur = 20; ctx.fill();
+            // Draw missile symbol
+            ctx.fillStyle = 'white';
+            ctx.font = `${radius * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🚀', centerX, centerY);
+            ctx.restore();
+        }
+
         function updateAndDrawObstacles() {
             const cssHeight = gameContainer.clientHeight;
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -438,9 +592,22 @@
                     else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
                 } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
                 else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
+                else if (obs.type === 'speedBoost') drawSpeedBoost(obs.x, obs.y, obs.width / 2);
+                else if (obs.type === 'missileReload') drawMissileReload(obs.x, obs.y, obs.width / 2);
 
                 if (obs.y > cssHeight) {
                     obstacles.splice(i, 1);
+                    // Only count meteors for dodge counter
+                    if (obs.type === 'meteor') {
+                        dodgeCount++;
+                        // Recharge missile after dodging required amount
+                        if (dodgeCount >= missilesNeededToRecharge && missileCount < maxMissiles) {
+                            missileCount++;
+                            dodgeCount = 0;
+                            emitParticles(player.x + player.width / 2, player.y, 15, '#FFA500');
+                            playSound('shield'); // Reuse shield sound for reload
+                        }
+                    }
                     score += 10;
                     scoreEl.textContent = score;
                 }
@@ -461,6 +628,18 @@
                         playSound('shield');
                         emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
                         playShieldVideo();
+                    } else if (obs.type === 'speedBoost') {
+                        player.speed *= 1.5;
+                        obstacles.splice(i, 1);
+                        playSound('shield');
+                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00BFFF');
+                        setTimeout(() => { player.speed /= 1.5; }, 5000); // 5 seconds
+                    } else if (obs.type === 'missileReload') {
+                        missileCount = Math.min(maxMissiles, missileCount + 2);
+                        dodgeCount = 0;
+                        obstacles.splice(i, 1);
+                        playSound('shield');
+                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#FFA500');
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
@@ -687,6 +866,7 @@
                 if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
                 updatePlayer();
+                updateAndDrawMissiles();
                 updateAndDrawObstacles();
                 checkCollisions();
 
@@ -750,12 +930,17 @@
             endScreenVideo = document.getElementById('endScreenVideo');
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
+            shootBtn = document.getElementById('shootBtn');
             catMemePlayer = document.getElementById('catMemePlayer');
             shieldVideoPlayer = document.getElementById('shieldVideoPlayer');
             
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
                 if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    shootMissile();
+                }
             });
             document.addEventListener('keyup', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
@@ -765,6 +950,8 @@
             moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
+            shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootMissile(); }, { passive: false });
+            shootBtn.addEventListener('click', (e) => { e.preventDefault(); shootMissile(); });
             
             restartButton.addEventListener('click', () => {
                 try {
