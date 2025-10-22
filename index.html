@@ -1,16 +1,10 @@
-let canvas, ctx;
-        let scoreEl, modalBackdrop, modalTitle, modalScore, restartButton, endScreenVideo;
-        let moveLeftBtn, moveRightBtn, shootBtn, gameContainer;
-        let catMemePlayer;
-        let shieldVideoPlayer;<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Void Runner</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -60,26 +54,20 @@ let canvas, ctx;
             font-family: Arial, sans-serif;
             color: #cbd5e1;
         }
-        .leaderboard-container { display: none; }
-        .leaderboard-list { display: none; }
     </style>
 </head>
 <body class="text-white flex flex-col items-center h-screen pt-4 pb-12">
 
-    <!-- Game Title -->
     <h1 class="text-3xl md:text-4xl font-bold mb-1 text-glow-cyan">Void Runner</h1>
     
-    <!-- Credit -->
     <p class="text-xs text-gray-400 mb-2">
         Made by <a href="https://x.com/sagnikray22" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline transition-colors">Ash</a> for Re community
     </p>
 
-    <!-- Score Display -->
     <div class="mb-2 text-lg md:text-2xl">
         Score: <span id="score" class="font-bold text-glow-yellow">0</span>
     </div>
 
-    <!-- Hidden video for Cat Memes -->
     <video id="catMemePlayer"
         class="hidden z-[100] absolute top-4 left-4 rounded-lg shadow-2xl border-2 border-cyan-300 w-32 h-auto"
         src=""
@@ -88,7 +76,6 @@ let canvas, ctx;
         playsinline
     ></video>
 
-    <!-- Hidden video for Shield Power-up -->
     <video id="shieldVideoPlayer"
         class="hidden z-[100] absolute top-4 right-4 rounded-lg shadow-2xl border-2 border-green-400 w-32 h-auto"
         src=""
@@ -97,25 +84,19 @@ let canvas, ctx;
         playsinline
     ></video>
 
-    <!-- Game Canvas Container -->
     <div id="game-container" class="w-full flex-1 rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
         <canvas id="gameCanvas" class="w-full h-full"></canvas>
     </div>
 
-    <!-- Mobile Touch Controls -->
-    <div class="md:hidden w-full mt-2 grid grid-cols-3 gap-4 px-4 pb-4">
+    <div class="md:hidden w-full mt-2 grid grid-cols-2 gap-4 px-4 pb-4">
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
-        </button>
-        <button id="shootBtn" class="bg-gradient-to-b from-orange-600 to-orange-800 border-2 border-yellow-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-orange-500/50 active:shadow-none">
-            🚀 Shoot
         </button>
         <button id="moveRightBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             Right &rarr;
         </button>
     </div>
 
-    <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
             <video id="endScreenVideo" src="" class="w-full max-w-sm mx-auto mb-4 rounded-lg hidden" controls preload="none" playsinline></video>
@@ -125,7 +106,6 @@ let canvas, ctx;
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
-
         </div>
     </div>
 
@@ -141,13 +121,13 @@ let canvas, ctx;
         let player, obstacles = [], score = 0, lives = 3;
         let gameSpeed = 1.0, isGameOver = false, animationFrameId;
         let obstacleSpawnTimer = 0, obstacleSpawnInterval = 100;
-        let lastObstacleTime = 0; // NEW: Track time between obstacles
         let shieldTimer = 0;
         const SHIELD_DURATION = 300;
         let moveLeft = false, moveRight = false;
         let catMemeTimeout;
         let endScreenVideoTimeout;
         let shieldVideoTimeout;
+        let lastObstacleTime = 0;
  
         const catMemeFiles = [
             "cat1.mp4",
@@ -192,7 +172,6 @@ let canvas, ctx;
             }).toDestination();
             sounds.fanfare.volume.value = -5;
             
-            console.log("Sound effects initialized");
             soundInitialized = true;
         }
 
@@ -217,23 +196,17 @@ let canvas, ctx;
         function playRandomCatMeme() {
             try {
                 if (catMemeFiles.length === 0) return;
-
                 if (catMemeTimeout) clearTimeout(catMemeTimeout);
-
                 const randomFile = catMemeFiles[Math.floor(Math.random() * catMemeFiles.length)];
-                
                 catMemePlayer.src = randomFile;
                 catMemePlayer.classList.remove('hidden');
-
                 catMemePlayer.play().catch(e => {
-                    console.warn("Video autoplay blocked. User must click play.", e.message);
+                    console.warn("Video autoplay blocked.", e.message);
                 });
-
                 catMemeTimeout = setTimeout(() => {
                     catMemePlayer.classList.add('hidden');
                     catMemePlayer.src = '';
                 }, 10000);
-
             } catch(e) {
                 console.error("Could not play cat meme:", e);
             }
@@ -242,19 +215,15 @@ let canvas, ctx;
         function playShieldVideo() {
             try {
                 if (shieldVideoTimeout) clearTimeout(shieldVideoTimeout);
-
                 shieldVideoPlayer.src = 'cat5.mp4';
                 shieldVideoPlayer.classList.remove('hidden');
-
                 shieldVideoPlayer.play().catch(e => {
-                    console.warn("Shield video autoplay blocked. User must click play.", e.message);
+                    console.warn("Shield video autoplay blocked.", e.message);
                 });
-
                 shieldVideoTimeout = setTimeout(() => {
                     shieldVideoPlayer.classList.add('hidden');
                     shieldVideoPlayer.src = '';
                 }, 5000);
-
             } catch(e) {
                 console.error("Could not play cat5.mp4:", e);
             }
@@ -275,32 +244,23 @@ let canvas, ctx;
         function resizeCanvas() {
             const container = gameContainer;
             const dpr = window.devicePixelRatio || 1;
-            
             const cssWidth = container.clientWidth;
             const cssHeight = container.clientHeight;
-
             canvas.width = cssWidth * dpr;
             canvas.height = cssHeight * dpr;
-
             canvas.style.width = cssWidth + 'px';
             canvas.style.height = cssHeight + 'px';
-            
             ctx.scale(dpr, dpr);
             
             if (player) {
-                const oldHeight = player.height / 0.1;
-                const oldXRatio = player.x / (oldHeight * (cssWidth / cssHeight));
-                
                 player.width = cssHeight * 0.1;
                 player.height = player.width;
                 player.speed = cssWidth * 0.005;
-                
                 player.x = (player.x / (gameContainer.clientWidth || 1)) * cssWidth;
                 player.y = cssHeight - player.height - 10;
             }
             
             initStars(cssWidth, cssHeight);
-
             if (!isGameOver) {
                 ctx.clearRect(0, 0, cssWidth, cssHeight);
                 if(player) drawPlayer();
@@ -358,8 +318,6 @@ let canvas, ctx;
             const lifeSize = cssHeight * 0.05;
             const padding = cssHeight * 0.02;
             ctx.save();
-            
-            // Draw lives
             if (playerImageLoaded) {
                 ctx.globalAlpha = 0.8;
                 for (let i = 0; i < lives; i++) {
@@ -372,38 +330,6 @@ let canvas, ctx;
                     ctx.fillRect(padding + i * (lifeSize + padding / 2), cssHeight - lifeSize - padding, lifeSize, lifeSize);
                 }
             }
-            
-            // Draw missile count
-            const missileY = cssHeight - lifeSize * 2 - padding * 2.5;
-            ctx.fillStyle = 'rgba(255, 165, 0, 0.9)';
-            ctx.font = `${lifeSize * 0.7}px Orbitron`;
-            ctx.textAlign = 'left';
-            ctx.fillText('🚀', padding, missileY);
-            ctx.fillStyle = '#FFA500';
-            ctx.fillText(` x${missileCount}`, padding + lifeSize * 0.8, missileY);
-            
-            // Draw dodge progress bar for next missile
-            if (missileCount < maxMissiles) {
-                const barWidth = lifeSize * 3;
-                const barHeight = lifeSize * 0.2;
-                const barX = padding;
-                const barY = missileY + lifeSize * 0.5;
-                const progress = dodgeCount / missilesNeededToRecharge;
-                
-                // Background
-                ctx.fillStyle = 'rgba(50, 50, 50, 0.7)';
-                ctx.fillRect(barX, barY, barWidth, barHeight);
-                
-                // Progress
-                ctx.fillStyle = '#FFA500';
-                ctx.fillRect(barX, barY, barWidth * progress, barHeight);
-                
-                // Border
-                ctx.strokeStyle = '#FFA500';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(barX, barY, barWidth, barHeight);
-            }
-            
             ctx.restore();
         }
 
@@ -411,77 +337,9 @@ let canvas, ctx;
             if (moveLeft) player.x -= player.speed;
             if (moveRight) player.x += player.speed;
             if(moveLeft || moveRight) emitThrusterParticles();
-
             const cssWidth = gameContainer.clientWidth;
             if (player.x < 0) player.x = 0;
             if (player.x + player.width > cssWidth) player.x = cssWidth - player.width;
-        }
-
-        // NEW: Shoot missile
-        function shootMissile() {
-            if (missileCount > 0 && !isGameOver) {
-                missileCount--;
-                const cssHeight = gameContainer.clientHeight;
-                missiles.push({
-                    x: player.x + player.width / 2 - player.width * 0.1,
-                    y: player.y,
-                    width: player.width * 0.2,
-                    height: player.height * 0.4,
-                    speed: 8
-                });
-                playSound('shield'); // Reuse shield sound for shooting
-                emitParticles(player.x + player.width / 2, player.y, 10, '#FF6600');
-            }
-        }
-
-        // NEW: Update and draw missiles
-        function updateAndDrawMissiles() {
-            const cssHeight = gameContainer.clientHeight;
-            for (let i = missiles.length - 1; i >= 0; i--) {
-                let missile = missiles[i];
-                missile.y -= missile.speed;
-                
-                // Draw missile
-                ctx.save();
-                ctx.fillStyle = '#FF6600';
-                ctx.shadowColor = '#FF6600';
-                ctx.shadowBlur = 10;
-                ctx.fillRect(missile.x, missile.y, missile.width, missile.height);
-                // Missile tip
-                ctx.fillStyle = '#FFFF00';
-                ctx.beginPath();
-                ctx.moveTo(missile.x, missile.y);
-                ctx.lineTo(missile.x + missile.width / 2, missile.y - missile.height * 0.3);
-                ctx.lineTo(missile.x + missile.width, missile.y);
-                ctx.fill();
-                ctx.restore();
-                
-                // Remove if off screen
-                if (missile.y < -missile.height) {
-                    missiles.splice(i, 1);
-                    continue;
-                }
-                
-                // Check collision with obstacles
-                for (let j = obstacles.length - 1; j >= 0; j--) {
-                    let obs = obstacles[j];
-                    if (obs.type === 'meteor' || obs.type === 'bomb') {
-                        if (missile.x < obs.x + obs.width &&
-                            missile.x + missile.width > obs.x &&
-                            missile.y < obs.y + obs.height &&
-                            missile.y + missile.height > obs.y) {
-                            // Hit!
-                            obstacles.splice(j, 1);
-                            missiles.splice(i, 1);
-                            score += 25; // Bonus for shooting
-                            scoreEl.textContent = score;
-                            playSound('hit');
-                            emitParticles(obs.x + obs.width / 2, obs.y + obs.height / 2, 40, '#FF6600');
-                            break;
-                        }
-                    }
-                }
-            }
         }
 
         function createFallingObject() {
@@ -491,15 +349,9 @@ let canvas, ctx;
             let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
             if (rand < 0.05 && score > 200) {
-                objectType = 'speedBoost';
-                baseSpeed = gameSpeed * 1.2;
-            } else if (rand < 0.08 && score > 150) {
-                objectType = 'missileReload';
-                baseSpeed = gameSpeed * 1.1;
-            } else if (rand < 0.13 && score > 100) {
                 objectType = 'booster';
                 baseSpeed = gameSpeed * 1.2;
-            } else if (rand < 0.18 && score > 100) {
+            } else if (rand < 0.10 && score > 100) {
                 objectType = 'bomb';
                 baseSpeed = gameSpeed * 1.1;
             }
@@ -542,46 +394,6 @@ let canvas, ctx;
             ctx.restore();
         }
 
-        // NEW: Draw Speed Boost (Blue/Cyan powerup)
-        function drawSpeedBoost(x, y, radius) {
-            ctx.save();
-            const centerX = x + radius, centerY = y + radius;
-            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(100, 200, 255, 1)');
-            gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.8)');
-            gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
-            ctx.fillStyle = gradient;
-            ctx.shadowColor = '#00BFFF'; ctx.shadowBlur = 20; ctx.fill();
-            // Draw lightning symbol
-            ctx.fillStyle = 'white';
-            ctx.font = `${radius * 1.2}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('⚡', centerX, centerY);
-            ctx.restore();
-        }
-
-        // NEW: Draw Missile Reload (Yellow/Orange powerup)
-        function drawMissileReload(x, y, radius) {
-            ctx.save();
-            const centerX = x + radius, centerY = y + radius;
-            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(255, 200, 100, 1)');
-            gradient.addColorStop(0.5, 'rgba(255, 150, 0, 0.8)');
-            gradient.addColorStop(1, 'rgba(200, 100, 0, 0)');
-            ctx.fillStyle = gradient;
-            ctx.shadowColor = '#FFA500'; ctx.shadowBlur = 20; ctx.fill();
-            // Draw missile symbol
-            ctx.fillStyle = 'white';
-            ctx.font = `${radius * 1.2}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🚀', centerX, centerY);
-            ctx.restore();
-        }
-
         function updateAndDrawObstacles() {
             const cssHeight = gameContainer.clientHeight;
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -592,22 +404,9 @@ let canvas, ctx;
                     else { ctx.fillStyle = '#8B4513'; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); }
                 } else if (obs.type === 'bomb') drawBomb(obs.x, obs.y, obs.width / 2);
                 else if (obs.type === 'booster') drawBooster(obs.x, obs.y, obs.width / 2);
-                else if (obs.type === 'speedBoost') drawSpeedBoost(obs.x, obs.y, obs.width / 2);
-                else if (obs.type === 'missileReload') drawMissileReload(obs.x, obs.y, obs.width / 2);
 
                 if (obs.y > cssHeight) {
                     obstacles.splice(i, 1);
-                    // Only count meteors for dodge counter
-                    if (obs.type === 'meteor') {
-                        dodgeCount++;
-                        // Recharge missile after dodging required amount
-                        if (dodgeCount >= missilesNeededToRecharge && missileCount < maxMissiles) {
-                            missileCount++;
-                            dodgeCount = 0;
-                            emitParticles(player.x + player.width / 2, player.y, 15, '#FFA500');
-                            playSound('shield'); // Reuse shield sound for reload
-                        }
-                    }
                     score += 10;
                     scoreEl.textContent = score;
                 }
@@ -628,18 +427,6 @@ let canvas, ctx;
                         playSound('shield');
                         emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00FF00');
                         playShieldVideo();
-                    } else if (obs.type === 'speedBoost') {
-                        player.speed *= 1.5;
-                        obstacles.splice(i, 1);
-                        playSound('shield');
-                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#00BFFF');
-                        setTimeout(() => { player.speed /= 1.5; }, 5000); // 5 seconds
-                    } else if (obs.type === 'missileReload') {
-                        missileCount = Math.min(maxMissiles, missileCount + 2);
-                        dodgeCount = 0;
-                        obstacles.splice(i, 1);
-                        playSound('shield');
-                        emitParticles(player.x + player.width / 2, player.y + player.height / 2, 20, '#FFA500');
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
                         if (player.isShielded) {
                             obstacles.splice(i, 1);
@@ -688,7 +475,7 @@ let canvas, ctx;
                 endScreenVideo.src = 'cat4.mp4';
                 endScreenVideo.classList.remove('hidden');
                 endScreenVideo.play().catch(e => {
-                    console.warn("End screen video autoplay blocked. User must click play.", e.message);
+                    console.warn("End screen video autoplay blocked.", e.message);
                 });
                 
                 endScreenVideoTimeout = setTimeout(() => {
@@ -710,8 +497,6 @@ let canvas, ctx;
             const cssWidth = gameContainer.clientWidth;
             const cssHeight = gameContainer.clientHeight;
 
-            console.log(`initGame starting with dimensions ${cssWidth}x${cssHeight}.`);
-
             initStars(cssWidth, cssHeight);
             player = createPlayer();
             obstacles = [];
@@ -721,7 +506,7 @@ let canvas, ctx;
             gameSpeed = 1.0;
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 90; // Match the new base interval
+            obstacleSpawnInterval = 90;
             lastObstacleTime = 0;
             shieldTimer = 0;
             scoreEl.textContent = '0';
@@ -757,6 +542,7 @@ let canvas, ctx;
                 });
             }
         }
+        
         function emitThrusterParticles() {
             if (!player) return;
             for (let i = 0; i < 2; i++) {
@@ -820,12 +606,14 @@ let canvas, ctx;
                 size: Math.random() * 2 + 1, speed: Math.random() * 0.5 + 0.2
             };
         }
+        
         function initStars(width, height) {
             stars = [];
             for (let i = 0; i < 100; i++) {
                 stars.push(createStar(width, height));
             }
         }
+        
         function updateAndDrawStars(width, height) {
             ctx.save();
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
@@ -866,20 +654,18 @@ let canvas, ctx;
                 if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
                 updatePlayer();
-                updateAndDrawMissiles();
                 updateAndDrawObstacles();
                 checkCollisions();
 
                 obstacleSpawnTimer++;
                 
                 const progress = Math.min(1, score / 500);
-                const baseInterval = 90; // Increased from 80
-                const minInterval = 40; // Increased from 30
+                const baseInterval = 90;
+                const minInterval = 40;
                 const reduction = (baseInterval - minInterval) * progress;
                 obstacleSpawnInterval = Math.max(minInterval, baseInterval - reduction);
                 
-                // NEW: Add random variance to prevent clustering
-                const randomVariance = Math.floor(Math.random() * 20) - 10; // -10 to +10 frames
+                const randomVariance = Math.floor(Math.random() * 20) - 10;
                 const adjustedInterval = Math.max(minInterval, obstacleSpawnInterval + randomVariance);
                 
                 if (obstacleSpawnTimer >= adjustedInterval) {
@@ -898,7 +684,7 @@ let canvas, ctx;
         function main() {
             try {
                 modalTitle.textContent = 'Void Runner';
-                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors and shoot them down!</span>`;
+                modalScore.innerHTML = `<span class="text-subtitle">Dodge the meteors!</span>`;
                 
                 restartButton.textContent = 'Start Game';
                 restartButton.disabled = false;
@@ -907,8 +693,6 @@ let canvas, ctx;
                 modalBackdrop.classList.remove('hidden');
                 endScreenVideo.classList.add('hidden');
                 loadAllImages();
-                
-                console.log('Game initialized successfully');
             } catch (error) {
                 console.error("Error in main() function:", error);
                 const modal = document.getElementById('modalBackdrop');
@@ -932,17 +716,12 @@ let canvas, ctx;
             endScreenVideo = document.getElementById('endScreenVideo');
             moveLeftBtn = document.getElementById('moveLeftBtn');
             moveRightBtn = document.getElementById('moveRightBtn');
-            shootBtn = document.getElementById('shootBtn');
             catMemePlayer = document.getElementById('catMemePlayer');
             shieldVideoPlayer = document.getElementById('shieldVideoPlayer');
             
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
                 if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
-                if (e.key === ' ' || e.key === 'Spacebar') {
-                    e.preventDefault();
-                    shootMissile();
-                }
             });
             document.addEventListener('keyup', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
@@ -952,8 +731,6 @@ let canvas, ctx;
             moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
             moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
             moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
-            shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootMissile(); }, { passive: false });
-            shootBtn.addEventListener('click', (e) => { e.preventDefault(); shootMissile(); });
             
             restartButton.addEventListener('click', () => {
                 try {
@@ -980,7 +757,7 @@ let canvas, ctx;
                     }
                 } catch (e) {
                     console.error("Error in restart click handler:", e);
-                     initGame();
+                    initGame();
                 }
             });
 
