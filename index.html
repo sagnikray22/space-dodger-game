@@ -6,11 +6,12 @@
     <title>Space Dodger</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- NEW: Use Orbitron font -->
+    <!-- Use Orbitron font -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <!-- NEW: Load Tone.js for sound -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
-            /* MODIFIED: Set new font */
             font-family: 'Orbitron', sans-serif;
             overflow: hidden; /* Prevent scrolling on mobile */
             touch-action: none; /* Disable panning and zooming */
@@ -18,15 +19,12 @@
         canvas {
             background-color: #1A0A2A; /* Dark Purple */
             touch-action: none; /* Disable touch gestures on canvas */
-            
-            /* New Purple Nebula/Starfield Background */
             background-image: 
                 radial-gradient(circle at 20% 30%, rgba(200, 150, 255, 0.2), transparent 40%),
                 radial-gradient(circle at 80% 70%, rgba(180, 100, 220, 0.15), transparent 40%),
                 radial-gradient(circle at 50% 50%, rgba(220, 180, 255, 0.05), transparent 20%);
             background-size: 100% 100%;
         }
-        /* Ensure the modal is centered and has a backdrop */
         .modal-backdrop {
             position: fixed;
             top: 0;
@@ -38,26 +36,56 @@
             justify-content: center;
             align-items: center;
             z-index: 50;
-            /* NEW: Backdrop blur for AAA feel */
             backdrop-filter: blur(5px);
         }
-
-        /* NEW: AAA neon glow effect */
         .text-glow-cyan {
-            color: #e0faff; /* Lighter cyan for the core text */
+            color: #e0faff;
             text-shadow: 0 0 2px #0ff, 0 0 6px #0ff, 0 0 12px #0ff;
         }
         .text-glow-yellow {
-            color: #fffde0; /* Lighter yellow for the core text */
+            color: #fffde0;
             text-shadow: 0 0 2px #ff0, 0 0 6px #ff0, 0 0 12px #ff0;
+        }
+
+        /* NEW: Leaderboard Styles */
+        .leaderboard-container {
+            width: 90%;
+            max-width: 600px;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #8B5CF6; /* Purple border */
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        }
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            font-size: 0.9rem;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-item .name {
+            color: #fff;
+        }
+        .leaderboard-item .score {
+            color: #FACC15; /* Yellow */
         }
     </style>
 </head>
-<!-- MODIFIED: Changed bg-gray-900 to bg-purple-900 -->
-<body class="bg-purple-900 text-white flex flex-col items-center min-h-screen pt-4">
+<body class="bg-purple-900 text-white flex flex-col items-center min-h-screen pt-4 pb-8">
 
     <!-- Game Title -->
-    <!-- MODIFIED: Added AAA glow class -->
     <h1 class="text-3xl md:text-4xl font-bold mb-4 text-glow-cyan">Space Dodger</h1>
 
     <!-- Score Display -->
@@ -66,13 +94,11 @@
     </div>
 
     <!-- Game Canvas -->
-    <!-- MODIFIED: Changed border-cyan-400 to border-purple-400 -->
     <div class="w-full md:max-w-3xl lg:max-w-4xl aspect-square rounded-lg shadow-2xl overflow-hidden border-2 border-purple-400">
         <canvas id="gameCanvas"></canvas>
     </div>
 
     <!-- Mobile Touch Controls -->
-    <!-- MODIFIED: Styled buttons -->
     <div class="md:hidden w-full max-w-lg mt-4 grid grid-cols-2 gap-4 px-4 pb-4">
         <button id="moveLeftBtn" class="bg-gradient-to-b from-purple-600 to-purple-800 border-2 border-cyan-300 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform duration-200 shadow-purple-500/50 active:shadow-none">
             &larr; Left
@@ -82,17 +108,30 @@
         </button>
     </div>
 
+    <!-- NEW: Leaderboard Section -->
+    <div class="leaderboard-container">
+        <h3 class="text-center text-xl font-bold text-glow-cyan mb-4">Top 10 Scores</h3>
+        <ol id="leaderboardList" class="leaderboard-list">
+            <!-- Scores will be populated by JavaScript -->
+        </ol>
+    </div>
+
     <!-- Game Over / Start Modal -->
     <div id="modalBackdrop" class="modal-backdrop hidden">
-        <!-- MODIFIED: Styled modal -->
         <div id="gameModal" class="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-lg shadow-2xl shadow-cyan-500/50 text-center border-2 border-cyan-300">
-            <!-- NEW: Image for Game Over screen -->
             <img id="modalImage" src="" alt="Game Over" class="w-32 h-32 mx-auto mb-4 rounded-lg hidden">
-            <!-- END NEW -->
-            <!-- MODIFIED: Added AAA glow class -->
             <h2 id="modalTitle" class="text-3xl font-bold mb-4 text-glow-cyan">Game Over!</h2>
             <p id="modalScore" class="text-xl mb-6">Your Score: 0</p>
-            <!-- MODIFIED: Styled button -->
+            
+            <!-- NEW: Submit Score Form -->
+            <div id="submitScoreForm" class="hidden">
+                <input type="text" id="playerNameInput" placeholder="Enter your name" class="w-full p-2 rounded bg-gray-700 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-cyan-300">
+                <button id="submitScoreBtn" class="w-full mt-4 bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/50">
+                    Submit Score
+                </button>
+            </div>
+
+            <!-- "Play Again" / "Start Game" Button -->
             <button id="restartButton" class="bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-lg text-xl transform transition-all duration-300 hover:scale-105 shadow-lg shadow-yellow-500/50 hover:shadow-yellow-300/50">
                 Play Again
             </button>
@@ -100,6 +139,11 @@
     </div>
 
     <script type="module">
+        // --- NEW: Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- Canvas & Context Setup ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -110,376 +154,380 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalScore = document.getElementById('modalScore');
         const restartButton = document.getElementById('restartButton');
-        const modalImage = document.getElementById('modalImage'); // --- NEW ---
+        const modalImage = document.getElementById('modalImage');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const submitScoreForm = document.getElementById('submitScoreForm');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const submitScoreBtn = document.getElementById('submitScoreBtn');
         
         // --- Mobile Controls ---
         const moveLeftBtn = document.getElementById('moveLeftBtn');
         const moveRightBtn = document.getElementById('moveRightBtn');
 
         // --- Game State Variables ---
-        let player;
-        let obstacles = [];
-        let score = 0;
-        let lives = 3; // --- NEW: Player lives ---
-        let gameSpeed = 1.0; // Start with slow speed
-        let isGameOver = false;
-        let animationFrameId;
-        
-        // Difficulty timers
-        let obstacleSpawnTimer = 0;
-        let obstacleSpawnInterval = 100; // Start with slower spawn rate (was 70)
-
-        // Shield timer
+        let player, obstacles = [], score = 0, lives = 3;
+        let gameSpeed = 1.0, isGameOver = false, animationFrameId;
+        let obstacleSpawnTimer = 0, obstacleSpawnInterval = 100;
         let shieldTimer = 0;
-        const SHIELD_DURATION = 300; // 300 frames = 5 seconds at 60fps
-
-        // Player movement state
-        let moveLeft = false;
-        let moveRight = false;
+        const SHIELD_DURATION = 300; // 5 seconds
+        let moveLeft = false, moveRight = false;
         
-        // --- Player Image ---
-        let playerImage = new Image();
-        let playerImageLoaded = false;
-        const playerImageFilename = 'spaceship.png'; // The file you uploaded to GitHub
-
-        // --- Logo Image ---
-        let logoImage = new Image();
-        let logoImageLoaded = false;
-        const logoImageFilename = 'logo.png'; // The logo file you're uploading
-
-        // --- Meteor Image ---
-        let meteorImage = new Image();
-        let meteorImageLoaded = false;
+        // --- Image Assets ---
+        let playerImage = new Image(), playerImageLoaded = false;
+        const playerImageFilename = 'spaceship.png';
+        let logoImage = new Image(), logoImageLoaded = false;
+        const logoImageFilename = 'logo.png';
+        let meteorImage = new Image(), meteorImageLoaded = false;
         const meteorImageFilename = 'meteor.png';
-        
-        // --- NEW: Octopus Image ---
-        let octopusImage = new Image();
-        let octopusImageLoaded = false;
+        let octopusImage = new Image(), octopusImageLoaded = false;
         const octopusImageFilename = 'octopus.png';
-        // --- END NEW ---
+
+        // --- NEW: Firebase Variables ---
+        let db, auth, userId, appId;
+        let soundInitialized = false;
+
+        // --- NEW: Sound Synthesizers (Tone.js) ---
+        let synth, bombSynth, shieldSynth, hitSynth;
+        
+        function initSounds() {
+            // Create synths
+            synth = new Tone.Synth().toDestination();
+            bombSynth = new Tone.MembraneSynth().toDestination();
+            shieldSynth = new Tone.Synth({
+                oscillator: { type: "pulse", width: 0.8 },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
+            }).toDestination();
+            hitSynth = new Tone.NoiseSynth({
+                noise: { type: "pink" },
+                envelope: { attack: 0.01, decay: 0.15, sustain: 0 }
+            }).toDestination();
+
+            console.log("Sounds initialized");
+            soundInitialized = true;
+        }
+
+        function playSound(sound) {
+            if (!soundInitialized) return;
+
+            const now = Tone.now();
+            if (sound === 'shield') {
+                shieldSynth.triggerAttackRelease("C5", "8n", now);
+                shieldSynth.triggerAttackRelease("G5", "8n", now + 0.1);
+            } else if (sound === 'hit') {
+                hitSynth.triggerAttackRelease("4n", now);
+            } else if (sound === 'gameover') {
+                bombSynth.triggerAttackRelease("C2", "4n", now);
+                bombSynth.triggerAttackRelease("G1", "4n", now + 0.2);
+            }
+        }
+        
+        // --- NEW: Firebase Initialization ---
+        async function initFirebase() {
+            try {
+                // These global variables are provided by the environment
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+                const firebaseConfig = JSON.parse(firebaseConfigStr);
+
+                if (!firebaseConfig.apiKey) {
+                    console.warn("Firebase config not found. Leaderboard will not work.");
+                    return;
+                }
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        console.log("User is signed in:", user.uid);
+                        userId = user.uid;
+                        // User is ready, load the leaderboard
+                        loadLeaderboard();
+                    } else {
+                        console.log("User is signed out.");
+                        userId = null;
+                    }
+                });
+
+                // Sign in
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+            }
+        }
+
+        // --- NEW: Load Leaderboard Data ---
+        function loadLeaderboard() {
+            if (!db) return;
+            
+            const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
+            const q = query(leaderboardCol); // Get all scores
+
+            onSnapshot(q, (snapshot) => {
+                let scores = [];
+                snapshot.forEach(doc => {
+                    scores.push(doc.data());
+                });
+
+                // Sort and filter in memory
+                const sortedScores = scores
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 10);
+                
+                displayLeaderboard(sortedScores);
+            }, (error) => {
+                console.error("Error loading leaderboard:", error);
+            });
+        }
+
+        // --- NEW: Display Leaderboard ---
+        function displayLeaderboard(scores) {
+            leaderboardList.innerHTML = ''; // Clear old list
+            if (scores.length === 0) {
+                leaderboardList.innerHTML = '<li class="text-center text-gray-400">Be the first to set a score!</li>';
+                return;
+            }
+            scores.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.className = 'leaderboard-item';
+                li.innerHTML = `
+                    <span class="name">${index + 1}. ${entry.name || 'Anonymous'}</span>
+                    <span class="score">${entry.score}</span>
+                `;
+                leaderboardList.appendChild(li);
+            });
+        }
+
+        // --- NEW: Submit Score ---
+        async function submitScore() {
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert("Please enter your name!");
+                return;
+            }
+            if (!db || !userId) {
+                console.error("Database not ready to submit score.");
+                return;
+            }
+
+            try {
+                const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
+                await addDoc(leaderboardCol, {
+                    name: playerName,
+                    score: score,
+                    userId: userId,
+                    createdAt: new Date().toISOString()
+                });
+                
+                console.log("Score submitted!");
+                // Hide form, show restart button
+                submitScoreForm.classList.add('hidden');
+                restartButton.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error submitting score:", error);
+            }
+        }
 
         // --- Load Images ---
-        // Load player image
-        playerImage.src = playerImageFilename;
-        playerImage.onload = function() {
-            playerImageLoaded = true;
-            console.log("Player image loaded successfully!");
-        }
-        playerImage.onerror = function() {
-            playerImageLoaded = false; // Fallback to drawing a square
-            console.error("Error loading player image: " + playerImageFilename);
-        }
+        function loadAllImages() {
+            // Player image
+            playerImage.src = playerImageFilename;
+            playerImage.onload = () => playerImageLoaded = true;
+            playerImage.onerror = () => console.error("Error loading player image");
 
-        // Load logo image
-        logoImage.src = logoImageFilename;
-        logoImage.onload = function() {
-            logoImageLoaded = true;
-            console.log("Logo image loaded successfully!");
-        }
-        logoImage.onerror = function() {
-            logoImageLoaded = false;
-            console.error("Error loading logo image: " + logoImageFilename);
-        }
+            // Logo image
+            logoImage.src = logoImageFilename;
+            logoImage.onload = () => logoImageLoaded = true;
+            logoImage.onerror = () => console.error("Error loading logo image");
 
-        // Load meteor image
-        meteorImage.src = meteorImageFilename;
-        meteorImage.onload = function() {
-            meteorImageLoaded = true;
-            console.log("Meteor image loaded successfully!");
-        }
-        meteorImage.onerror = function() {
-            meteorImageLoaded = false;
-            console.error("Error loading meteor image: " + meteorImageFilename);
-        }
+            // Meteor image
+            meteorImage.src = meteorImageFilename;
+            meteorImage.onload = () => meteorImageLoaded = true;
+            meteorImage.onerror = () => console.error("Error loading meteor image");
 
-        // --- NEW: Load octopus image ---
-        octopusImage.src = octopusImageFilename;
-        octopusImage.onload = function() {
-            octopusImageLoaded = true;
-            console.log("Octopus image loaded successfully!");
+            // Octopus image
+            octopusImage.src = octopusImageFilename;
+            octopusImage.onload = () => octopusImageLoaded = true;
+            octopusImage.onerror = () => console.error("Error loading octopus image");
         }
-        octopusImage.onerror = function() {
-            octopusImageLoaded = false;
-            console.error("Error loading octopus image: " + octopusImageFilename);
-        }
-        // --- END NEW ---
 
 
         // --- Game Functions ---
 
-        // Resize canvas to fit its container
+        // Resize canvas
         function resizeCanvas() {
-            // Get the container's size
             const container = canvas.parentElement;
-            const size = container.clientWidth; // CSS pixel size
-            
-            // --- NEW: High DPI Scaling ---
+            const size = container.clientWidth;
             const dpr = window.devicePixelRatio || 1;
-            
-            // Set canvas internal resolution to match physical pixels
             canvas.width = size * dpr;
             canvas.height = size * dpr;
-
-            // Set the CSS display size (this doesn't change)
             canvas.style.width = size + 'px';
             canvas.style.height = size + 'px';
-            
-            // Scale the context so we can use CSS pixels for drawing
             ctx.scale(dpr, dpr);
-            // --- END NEW ---
-
-            // Update player size/position (if player exists)
+            
             if (player) {
-                // Get the old *CSS size* of the canvas, which player.width was based on
-                const oldSize = player.width / 0.15; 
-        
-                // Get new proportional x position
+                const oldSize = player.width / 0.15;
                 const oldXRatio = player.x / oldSize;
-                
-                // Set new size based on new CSS size
-                player.width = size * 0.15; // 15% of CSS canvas width
-                player.height = player.width; // Keep it square
-                player.speed = size * 0.008; // MODIFIED: Responsive speed (was 0.015)
-                
-                // Set new position
+                player.width = size * 0.15;
+                player.height = player.width;
+                player.speed = size * 0.008;
                 player.x = oldXRatio * size;
                 player.y = size - player.height - 10;
             }
             
-            // Redraw if game is running
             if (!isGameOver) {
-                // Clear and redraw all elements (or just player)
-                ctx.clearRect(0, 0, size, size); // Use CSS size
+                ctx.clearRect(0, 0, size, size);
                 if(player) drawPlayer();
-                updateAndDrawObstacles(); // Redraw existing obstacles
+                updateAndDrawObstacles();
             }
         }
 
-        // Create the player object
+        // Create player
         function createPlayer() {
-            const size = canvas.parentElement.clientWidth; // Get CSS size
-            const playerSize = size * 0.15; // 15% of CSS canvas width
+            const size = canvas.parentElement.clientWidth;
+            const playerSize = size * 0.15;
             return {
                 x: size / 2 - playerSize / 2,
                 y: size - playerSize - 10,
                 width: playerSize,
                 height: playerSize,
-                speed: size * 0.008, // MODIFIED: Responsive speed (was 0.015)
-                dx: 0, // Horizontal velocity
+                speed: size * 0.008,
                 isShielded: false,
-                invincibilityTimer: 0 // --- NEW: For hit flashing ---
+                invincibilityTimer: 0
             };
         }
 
-        // Draw the player (Image or Fallback)
+        // Draw player
         function drawPlayer() {
-            // --- NEW: Draw Shield if active ---
             if (player.isShielded) {
                 ctx.save();
                 const centerX = player.x + player.width / 2;
                 const centerY = player.y + player.height / 2;
-                const radius = player.width * 0.7; // Shield radius
-                
-                // Create a pulsing effect
+                const radius = player.width * 0.7;
                 const pulse = Math.abs(Math.sin(Date.now() * 0.01));
-                
-                // MODIFIED: Changed shield to purple/pink
-                ctx.fillStyle = `rgba(238, 130, 238, ${0.2 + pulse * 0.2})`; // Pulsing violet fill
-                ctx.strokeStyle = `rgba(255, 0, 255, ${0.6 + pulse * 0.3})`; // Pulsing magenta border
+                ctx.fillStyle = `rgba(238, 130, 238, ${0.2 + pulse * 0.2})`;
+                ctx.strokeStyle = `rgba(255, 0, 255, ${0.6 + pulse * 0.3})`;
                 ctx.lineWidth = 3;
-
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
             }
-            // --- END NEW ---
 
-            // --- NEW: Handle Invincibility Flicker ---
-            // Blink every 10 frames
             if (player.invincibilityTimer > 0 && Math.floor(player.invincibilityTimer / 10) % 2 === 0) {
-                // On an even "blink" frame, skip drawing the player
+                // Skip drawing to flicker
             } else {
-                // Draw player normally
                 if (playerImageLoaded) {
                     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
                 } else {
-                    // Fallback if image fails to load: draw a blue square
-                    ctx.fillStyle = '#4A90E2'; // Blue
-                    ctx.shadowColor = '#81D4FA'; // Light blue glow
+                    ctx.fillStyle = '#4A90E2';
+                    ctx.shadowColor = '#81D4FA';
                     ctx.shadowBlur = 15;
                     ctx.fillRect(player.x, player.y, player.width, player.height);
-                    ctx.shadowBlur = 0; // Reset shadow
+                    ctx.shadowBlur = 0;
                 }
             }
-            // --- END NEW ---
         }
 
-        // --- NEW: Draw UI (Lives) ---
+        // Draw UI
         function drawUI() {
-            const size = canvas.parentElement.clientWidth; // Get CSS size
-            const lifeSize = size * 0.05; // Size of the life icon
-            const padding = size * 0.02; // Padding from edge
-            
+            const size = canvas.parentElement.clientWidth;
+            const lifeSize = size * 0.05;
+            const padding = size * 0.02;
             ctx.save();
-            
-            // Draw life icons (mini ships)
             if (playerImageLoaded) {
-                ctx.globalAlpha = 0.8; // Slightly transparent
+                ctx.globalAlpha = 0.8;
                 for (let i = 0; i < lives; i++) {
-                    ctx.drawImage(
-                        playerImage, 
-                        padding + i * (lifeSize + padding / 2), // x position
-                        size - lifeSize - padding, // y position (bottom left)
-                        lifeSize, // width
-                        lifeSize // height
-                    );
+                    ctx.drawImage(playerImage, padding + i * (lifeSize + padding / 2), size - lifeSize - padding, lifeSize, lifeSize);
                 }
                 ctx.globalAlpha = 1.0;
             } else {
-                // Fallback: Draw simple green squares
                 ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
                 for (let i = 0; i < lives; i++) {
-                        ctx.fillRect(
-                        padding + i * (lifeSize + padding / 2), 
-                        size - lifeSize - padding, 
-                        lifeSize, 
-                        lifeSize
-                    );
+                    ctx.fillRect(padding + i * (lifeSize + padding / 2), size - lifeSize - padding, lifeSize, lifeSize);
                 }
             }
             ctx.restore();
         }
 
-        // Update player's position
+        // Update player
         function updatePlayer() {
-            if (moveLeft) {
-                player.x -= player.speed;
-            }
-            if (moveRight) {
-                player.x += player.speed;
-            }
-
-            // Keep player within canvas bounds
-            const size = canvas.parentElement.clientWidth; // Get CSS size
-            if (player.x < 0) {
-                player.x = 0;
-            }
-            if (player.x + player.width > size) {
-                player.x = size - player.width;
-            }
+            if (moveLeft) player.x -= player.speed;
+            if (moveRight) player.x += player.speed;
+            const size = canvas.parentElement.clientWidth;
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > size) player.x = size - player.width;
         }
 
-        // Create a new falling object (meteor, bomb, or booster)
+        // Create falling object
         function createFallingObject() {
-            const size = canvas.parentElement.clientWidth; // Get CSS size
-            const objectSize = Math.random() * (size * 0.08) + (size * 0.03); // Random size
-            let objectType = 'meteor'; // Default type
-            let baseSpeed = gameSpeed;
-
+            const size = canvas.parentElement.clientWidth;
+            const objectSize = Math.random() * (size * 0.08) + (size * 0.03);
+            let objectType = 'meteor', baseSpeed = gameSpeed;
             const rand = Math.random();
-            if (rand < 0.05 && score > 200) { // 5% chance for a booster (after 200 points)
+            if (rand < 0.05 && score > 200) {
                 objectType = 'booster';
-                baseSpeed = gameSpeed * 1.2; // Boosters fall a little faster
-            } else if (rand < 0.10 && score > 100) { // MODIFIED: Was 0.15, now 5% chance for bomb
+                baseSpeed = gameSpeed * 1.2;
+            } else if (rand < 0.10 && score > 100) {
                 objectType = 'bomb';
-                baseSpeed = gameSpeed * 1.1; // Bombs fall a little faster
+                baseSpeed = gameSpeed * 1.1;
             }
-            // ~90% chance for a meteor
-
             obstacles.push({
-                x: Math.random() * (size - objectSize), // Random x position
-                y: -objectSize, // Start above the screen
-                width: objectSize,
-                height: objectSize,
-                speed: Math.random() * 2 + baseSpeed, // Random speed
-                type: objectType // 'meteor', 'bomb', or 'booster'
+                x: Math.random() * (size - objectSize), y: -objectSize,
+                width: objectSize, height: objectSize,
+                speed: Math.random() * 2 + baseSpeed, type: objectType
             });
         }
 
-        // --- MODIFIED: Function to draw a Bomb (classic cartoon style) ---
+        // Draw bomb
         function drawBomb(x, y, radius) {
             ctx.save();
-            const centerX = x + radius;
-            const centerY = y + radius;
-
-            // Black bomb body
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#222'; // Dark black/grey
-            ctx.shadowColor = '#000';
-            ctx.shadowBlur = 10;
-            ctx.fill();
-
-            // Grey 'cap' for the fuse
-            ctx.beginPath();
-            ctx.arc(centerX, centerY - radius * 0.8, radius * 0.2, 0, 2 * Math.PI);
-            ctx.fillStyle = '#999'; // Grey
-            ctx.fill();
-
-            // Simple fuse (a line)
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY - radius * 0.9);
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#222'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.fill();
+            ctx.beginPath(); ctx.arc(centerX, centerY - radius * 0.8, radius * 0.2, 0, 2 * Math.PI);
+            ctx.fillStyle = '#999'; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(centerX, centerY - radius * 0.9);
             ctx.lineTo(centerX + radius * 0.1, centerY - radius * 1.2);
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // Spark
-            ctx.beginPath();
-            ctx.arc(centerX + radius * 0.1, centerY - radius * 1.2, radius * 0.15, 0, 2 * Math.PI);
-            ctx.fillStyle = 'yellow';
-            ctx.shadowColor = 'orange';
-            ctx.shadowBlur = 15;
-            ctx.fill();
-            
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.stroke();
+            ctx.beginPath(); ctx.arc(centerX + radius * 0.1, centerY - radius * 1.2, radius * 0.15, 0, 2 * Math.PI);
+            ctx.fillStyle = 'yellow'; ctx.shadowColor = 'orange'; ctx.shadowBlur = 15; ctx.fill();
             ctx.restore();
         }
 
-        // --- MODIFIED: Function to draw a Booster (Green Orb) ---
+        // Draw booster
         function drawBooster(x, y, radius) {
             ctx.save();
-            const centerX = x + radius;
-            const centerY = y + radius;
-
-            // Glowing green orb
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            
-            // Create a radial gradient for a glow effect
+            const centerX = x + radius, centerY = y + radius;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
             const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(200, 255, 200, 1)'); // Bright green center
-            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)'); // Green
-            gradient.addColorStop(1, 'rgba(0, 150, 0, 0)'); // Fades to dark green
-            
+            gradient.addColorStop(0, 'rgba(200, 255, 200, 1)');
+            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 150, 0, 0)');
             ctx.fillStyle = gradient;
-            ctx.shadowColor = '#00FF00'; // Green glow
-            ctx.shadowBlur = 20;
-            ctx.fill();
-            
+            ctx.shadowColor = '#00FF00'; ctx.shadowBlur = 20; ctx.fill();
             ctx.restore();
         }
 
-
-        // --- DELETED: The old drawMeteor function ---
-
-
-        // Update and draw all obstacles
+        // Update/draw obstacles
         function updateAndDrawObstacles() {
-            const size = canvas.parentElement.clientWidth; // Get CSS size
+            const size = canvas.parentElement.clientWidth;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                obs.y += obs.speed; // Move obstacle down
-
-                // Draw the object based on its type
-                // --- MODIFIED: Draw meteor.png ---
+                obs.y += obs.speed;
                 if (obs.type === 'meteor') {
                     if (meteorImageLoaded) {
                         ctx.drawImage(meteorImage, obs.x, obs.y, obs.width, obs.height);
                     } else {
-                        // Fallback if image fails: draw a simple brown square
-                        ctx.fillStyle = '#8B4513'; // SaddleBrown
+                        ctx.fillStyle = '#8B4513';
                         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
                     }
                 } else if (obs.type === 'bomb') {
@@ -487,228 +535,176 @@
                 } else if (obs.type === 'booster') {
                     drawBooster(obs.x, obs.y, obs.width / 2);
                 }
-                // --- END MODIFICATION ---
 
-
-                // Remove obstacle if it's off-screen
-                if (obs.y > size) { // Use CSS size
+                if (obs.y > size) {
                     obstacles.splice(i, 1);
-                    score += 10; // Add to score for dodging
+                    score += 10;
                     scoreEl.textContent = score;
-
-                    // --- Difficulty Ramp ---
-                    // Increase game speed every 100 points, ONLY AFTER 500
-                    if (score >= 500 && score % 100 === 0) {
-                        gameSpeed += 0.2; // Slowly increase speed
-                    }
+                    if (score >= 500 && score % 100 === 0) gameSpeed += 0.2;
                 }
             }
         }
 
-        // Check for collisions between player and obstacles
+        // Check collisions
         function checkCollisions() {
-            // --- NEW: Check for invincibility ---
             if (player.invincibilityTimer > 0) return;
-
-            // Use a reverse loop so we can safely remove items
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-
-                // Simple AABB (Axis-Aligned Bounding Box) collision detection
-                const padding = player.width * 0.15; // 15% padding
-                
-                if (
-                    player.x < obs.x + obs.width - padding &&
-                    player.x + player.width > obs.x + padding &&
-                    player.y < obs.y + obs.height - padding &&
-                    player.y + player.height > obs.y + padding
-                ) {
-                    // Collision detected!
+                const padding = player.width * 0.15;
+                if (player.x < obs.x + obs.width - padding && player.x + player.width > obs.x + padding &&
+                    player.y < obs.y + obs.height - padding && player.y + player.height > obs.y + padding) {
                     
                     if (obs.type === 'booster') {
-                        // Collected a booster!
                         player.isShielded = true;
                         shieldTimer = SHIELD_DURATION;
-                        obstacles.splice(i, 1); // Remove the booster
-                    
+                        obstacles.splice(i, 1);
+                        playSound('shield'); // NEW
                     } else if (obs.type === 'meteor' || obs.type === 'bomb') {
-                        // Hit a meteor or bomb
                         if (player.isShielded) {
-                            // Shield protected the player!
-                            obstacles.splice(i, 1); // Destroy the obstacle
-                            player.isShielded = false; // --- NEW: Shield breaks on hit ---
+                            obstacles.splice(i, 1);
+                            playSound('hit'); // NEW
                         } else {
-                            // --- MODIFIED: Lose a life ---
                             lives--;
-                            obstacles.splice(i, 1); // Destroy the obstacle
-                            
+                            obstacles.splice(i, 1);
+                            playSound(obs.type === 'bomb' ? 'gameover' : 'hit'); // NEW
                             if (lives <= 0) {
                                 gameOver();
-                                break; // Exit loop
+                                break;
                             } else {
-                                // Player has lives left, grant temporary invincibility
-                                player.invincibilityTimer = 240; // MODIFIED: 4 seconds (was 180)
+                                player.invincibilityTimer = 240; // 4 seconds
                             }
-                            // --- END MODIFICATION ---
                         }
                     }
                 }
             }
         }
 
-        // Handle game over
+        // Game over
         function gameOver() {
             isGameOver = true;
-            cancelAnimationFrame(animationFrameId); // Stop the game loop
+            cancelAnimationFrame(animationFrameId);
+            playSound('gameover'); // NEW
             
-            // Show game over modal
             modalTitle.textContent = 'Game Over!';
-            // MODIFIED: Use innerHTML to allow for AAA glow class
             modalScore.innerHTML = `Your Score: <span class="font-bold text-glow-yellow">${score}</span>`;
-            
-            // --- NEW: Show octopus image ---
             if (octopusImageLoaded) {
                 modalImage.src = octopusImageFilename;
                 modalImage.classList.remove('hidden');
             }
-            // --- END NEW ---
+            
+            // NEW: Show submit form, hide restart button
+            submitScoreForm.classList.remove('hidden');
+            restartButton.classList.add('hidden');
             
             modalBackdrop.classList.remove('hidden');
         }
 
-        // Start or restart the game
+        // Start/restart game
         function initGame() {
-            // Resize canvas to fit container on start
             resizeCanvas();
-            
-            // Initialize game variables
             player = createPlayer();
             obstacles = [];
             score = 0;
-            lives = 3; // --- NEW: Reset lives ---
-            gameSpeed = 1.0; // Reset base speed
+            lives = 3;
+            gameSpeed = 1.0;
             isGameOver = false;
             obstacleSpawnTimer = 0;
-            obstacleSpawnInterval = 100; // Reset spawn rate (was 70)
-            shieldTimer = 0; // Reset shield timer
+            obstacleSpawnInterval = 100;
+            shieldTimer = 0;
             
-            // Reset UI
             scoreEl.textContent = '0';
             modalBackdrop.classList.add('hidden');
-            modalImage.classList.add('hidden'); // --- NEW: Hide image on restart ---
+            modalImage.classList.add('hidden');
             
-            // Start the game loop
             gameLoop();
         }
 
-        // --- Main Game Loop ---
+        // Main game loop
         function gameLoop() {
             if (isGameOver) return;
-
-            // --- Shield Timer Countdown ---
             if (player.isShielded) {
                 shieldTimer--;
-                if (shieldTimer <= 0) {
-                    player.isShielded = false;
-                }
+                if (shieldTimer <= 0) player.isShielded = false;
             }
+            if (player.invincibilityTimer > 0) player.invincibilityTimer--;
 
-            // --- NEW: Invincibility Timer Countdown ---
-            if (player.invincibilityTimer > 0) {
-                player.invincibilityTimer--;
-            }
-            // --- END NEW ---
-
-            // Clear the canvas and draw background
-            const size = canvas.parentElement.clientWidth; // Get CSS size
-            
-            // 1. Draw solid dark purple background
+            const size = canvas.parentElement.clientWidth;
             ctx.fillStyle = '#1A0A2A';
             ctx.fillRect(0, 0, size, size);
-
-            // 2. Draw the logo as a transparent watermark (if loaded)
             if (logoImageLoaded) {
                 ctx.save();
-                ctx.globalAlpha = 0.1; // 10% opacity
-                const logoSize = size * 0.9; // MODIFIED: Was 0.6 (60%), now 90%
-                const x = (size - logoSize) / 2;
-                const y = (size - logoSize) / 2;
-                ctx.drawImage(logoImage, x, y, logoSize, logoSize);
-                ctx.restore(); // Restore alpha
+                ctx.globalAlpha = 0.1;
+                const logoSize = size * 0.9;
+                ctx.drawImage(logoImage, (size - logoSize) / 2, (size - logoSize) / 2, logoSize, logoSize);
+                ctx.restore();
             }
-
-            // Update and draw game elements
             updatePlayer();
             drawPlayer();
             updateAndDrawObstacles();
-
-            // Check for collisions
             checkCollisions();
-
-            // --- NEW: Draw UI on top ---
             drawUI();
 
-            // --- Spawn new obstacles based on difficulty ramp ---
             obstacleSpawnTimer++;
-
             if (score < 500) {
-                obstacleSpawnInterval = 100; // Constant slow spawn rate (was 70)
+                obstacleSpawnInterval = 100;
             } else {
-                // After 500, make obstacles spawn faster
-                // Start from 100, go down to a max of 30
                 obstacleSpawnInterval = Math.max(30, 100 - (gameSpeed - 1.0) * 15);
             }
-            
             if (obstacleSpawnTimer >= obstacleSpawnInterval) {
-                createFallingObject(); 
+                createFallingObject();
                 obstacleSpawnTimer = 0;
             }
-
-            // --- ADDED: Request next frame ---
             animationFrameId = requestAnimationFrame(gameLoop);
         }
         
         // --- Event Handlers ---
-        function handleKeyDown(e) {
-            if (e.key === 'ArrowLeft' || e.key === 'a') {
-                moveLeft = true;
-            } else if (e.key === 'ArrowRight' || e.key === 'd') {
-                moveRight = true;
-            }
-        }
-
-        function handleKeyUp(e) {
-            if (e.key === 'ArrowLeft' || e.key === 'a') {
-                moveLeft = false;
-            } else if (e.key === 'ArrowRight' || e.key === 'd') {
-                moveRight = false;
-            }
-        }
-
-        document.addEventListener('keydown', handleKeyDown);
-        document.addEventListener('keyup', handleKeyUp);
-
-        // Touch controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
+        });
         moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; }, { passive: false });
         moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; }, { passive: false });
         moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; }, { passive: false });
         moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; }, { passive: false });
 
-        // Restart button
-        restartButton.addEventListener('click', initGame);
+        // MODIFIED: Restart button starts game AND initializes sound
+        restartButton.addEventListener('click', () => {
+            // NEW: Initialize sounds on first click
+            if (!soundInitialized) {
+                Tone.start();
+                initSounds();
+            }
+            initGame();
+        });
 
-        // Window resize
+        // NEW: Submit score button
+        submitScoreBtn.addEventListener('click', submitScore);
+
         window.addEventListener('resize', resizeCanvas);
 
         // --- Initial Game Start ---
-        // Show "Start Game" modal on first load
-        modalTitle.textContent = 'Space Dodger';
-        modalScore.textContent = 'Dodge the meteors!'; // MODIFIED: Use textContent
-        restartButton.textContent = 'Start Game';
-        modalBackdrop.classList.remove('hidden'); // MODIFIED: Fixed typo (was modalBackMoving)
-        modalImage.classList.add('hidden'); // --- NEW: Hide image for Start modal ---
+        function main() {
+            loadAllImages();
+            initFirebase(); // NEW
+            
+            // Show "Start Game" modal
+            modalTitle.textContent = 'Space Dodger';
+            modalScore.textContent = 'Dodge the meteors!';
+            restartButton.textContent = 'Start Game';
+            
+            // NEW: Hide submit form on start
+            submitScoreForm.classList.add('hidden');
+            restartButton.classList.remove('hidden');
+            
+            modalBackdrop.classList.remove('hidden');
+            modalImage.classList.add('hidden');
+        }
         
-        // We don't call initGame() here, we wait for the user to click "Start Game"
+        main(); // Run the main setup
         
     </script>
 </body>
